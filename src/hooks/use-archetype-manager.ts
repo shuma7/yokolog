@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import useLocalStorage from './use-local-storage';
 import type { Archetype, GameClass } from '@/types';
@@ -38,8 +39,6 @@ export function useArchetypeManager() {
   }, []); // This effect should run only once after initial load. archetypes at this point is the initially loaded value.
 
   const setArchetypes = useCallback((value: Archetype[] | ((val: Archetype[]) => Archetype[])) => {
-    // Archetypes being set should ideally be in the correct format by now.
-    // Migration is primarily handled by the initial load effect and the ensure-unknown effect.
     setArchetypesInternal(value);
   }, [setArchetypesInternal]);
 
@@ -49,47 +48,61 @@ export function useArchetypeManager() {
       id: uuidv4(),
       name,
       abbreviation,
-      gameClass, // gameClass should already be one of the new valid types
+      gameClass,
       isDefault: false,
     };
     setArchetypes(prev => [...prev, newArchetype]);
     return newArchetype;
   };
 
+  const updateArchetype = (updatedArchetype: Archetype) => {
+    if (updatedArchetype.isDefault) {
+        // Optionally, prevent full updates to default archetypes
+        // For now, we allow it but the UI might restrict it further
+        console.warn("Attempting to update a default archetype. This might be restricted by UI.");
+    }
+    setArchetypes(prev =>
+      prev.map(arch => (arch.id === updatedArchetype.id ? { ...arch, ...updatedArchetype } : arch))
+    );
+    return updatedArchetype;
+  };
+
+
   const getArchetypeById = (id: string): Archetype | undefined => {
-    // Ensure returned archetypes are migrated if somehow old data slipped through.
     return archetypes.map(migrateArchetypeClass).find(arch => arch.id === id);
   };
   
   const deleteArchetype = (id: string) => {
-    const isDefaultInitial = migratedInitialArchetypes.some(initialArch => initialArch.id === id && initialArch.isDefault);
-    if (isDefaultInitial) return; 
-
+    const archetypeToDelete = archetypes.find(arch => arch.id === id);
+    if (archetypeToDelete && archetypeToDelete.isDefault) {
+        // Prevent deletion of default archetypes.
+        // The UI in ManageArchetypesPage should already prevent triggering this for default archetypes.
+        console.warn(`Attempted to delete default archetype "${archetypeToDelete.name}". Operation aborted.`);
+        throw new Error("デフォルトのデッキタイプは削除できません。");
+    }
     setArchetypes(prev => prev.filter(arch => arch.id !== id));
   };
 
   // Ensure 'Unknown Opponent' archetype exists and has a valid class
   useEffect(() => {
-    const currentArchetypes = archetypes; // Capture current value for consistent checks within this effect run
-    const unknownArchetypeFromStorage = currentArchetypes.find(arch => arch.id === 'unknown');
+    const currentArchetypesSnapshot = archetypes; 
+    let updatedArchetypesWorkingCopy = [...currentArchetypesSnapshot];
     let needsUpdate = false;
-    let updatedArchetypesWorkingCopy = [...currentArchetypes];
 
+    const unknownArchetypeFromStorage = updatedArchetypesWorkingCopy.find(arch => arch.id === 'unknown');
+    
     if (!unknownArchetypeFromStorage) {
-      // 'unknown' archetype is missing, add it from template
-      const unknownArchetypeTemplate = INITIAL_ARCHETYPES.find(arch => arch.id === 'unknown'); // Use original template
+      const unknownArchetypeTemplate = INITIAL_ARCHETYPES.find(arch => arch.id === 'unknown');
       if (unknownArchetypeTemplate) {
-        updatedArchetypesWorkingCopy = [
-          migrateArchetypeClass(unknownArchetypeTemplate), // Ensure template is migrated before adding
-          ...updatedArchetypesWorkingCopy.filter(a => a.id !== 'unknown')
-        ];
+        // Add missing 'unknown' archetype, ensuring it's migrated
+        updatedArchetypesWorkingCopy = [migrateArchetypeClass(unknownArchetypeTemplate), ...updatedArchetypesWorkingCopy.filter(a => a.id !== 'unknown')];
         needsUpdate = true;
       }
     } else {
-      // 'unknown' archetype exists, check if its class needs migration
+      // 'unknown' archetype exists, ensure it's migrated
       const migratedUnknown = migrateArchetypeClass(unknownArchetypeFromStorage);
-      if (migratedUnknown !== unknownArchetypeFromStorage) { // Check if migration actually changed the object reference
-        updatedArchetypesWorkingCopy = updatedArchetypesWorkingCopy.map(arch => 
+      if (migratedUnknown.gameClass !== unknownArchetypeFromStorage.gameClass) { // Check if migration occurred
+        updatedArchetypesWorkingCopy = updatedArchetypesWorkingCopy.map(arch =>
           arch.id === 'unknown' ? migratedUnknown : arch
         );
         needsUpdate = true;
@@ -97,19 +110,18 @@ export function useArchetypeManager() {
     }
 
     if (needsUpdate) {
-      // Only call setArchetypesInternal if a meaningful change occurred
       setArchetypesInternal(updatedArchetypesWorkingCopy);
     }
-  // `setArchetypesInternal` is stable from useLocalStorage.
-  // The main dependency that will trigger re-evaluation is `archetypes`.
-  // This effect needs to run when `archetypes` changes to ensure consistency.
   }, [archetypes, setArchetypesInternal]);
 
   return { 
     archetypes: archetypes.map(migrateArchetypeClass), 
     addArchetype, 
+    updateArchetype,
     getArchetypeById, 
     deleteArchetype, 
     setArchetypes 
   };
 }
+
+    
