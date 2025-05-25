@@ -12,7 +12,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-} from '@/components/ui/sidebar'; 
+} from '@/components/ui/sidebar';
 import { useUsername } from '@/hooks/use-username';
 import { Button } from '@/components/ui/button';
 
@@ -29,9 +29,7 @@ export function AppSidebar() {
   const { username, setUsername } = useUsername();
 
   const handleLogout = () => {
-    setUsername(null); // Clear the username to "logout"
-    // Optionally, redirect to home or a login page if you had one
-    // For now, ClientLayoutWrapper will show the UsernameModal again
+    setUsername(null);
   };
 
   return (
@@ -44,7 +42,7 @@ export function AppSidebar() {
               <path d="M128,24a104,104,0,1,0,104,104A104.12041,104.12041,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.09957,88.09957,0,0,1,128,216Z" fill="currentColor"></path>
               <path d="M172.37207,76.879a8,8,0,0,0-8.74414,1.16211L128,109.36523l-35.62793-31.3241A8,8,0,0,0,80,83.52148V172.478a8,8,0,0,0,12.37207,6.39942L128,147.63428l35.62793,31.24316A8,8,0,0,0,176,172.478V83.52148a8,8,0,0,0-3.62793-6.64246Z" fill="currentColor" className="text-accent"></path>
             </svg>
-            <h1 className="text-xl font-semibold group-data-[collapsible=icon]:hidden">yokolog</h1>
+            <h1 className="text-xl font-semibold group-data-[collapsible=icon]:hidden">よこログ｜YNUsv</h1>
           </a>
         </Link>
       </SidebarHeader>
@@ -71,10 +69,10 @@ export function AppSidebar() {
               <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden truncate max-w-full">
                 ユーザー: {username}
               </span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleLogout} 
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
                 className="w-full group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:p-2"
                 title="ログアウト"
               >

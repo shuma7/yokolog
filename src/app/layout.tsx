@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'yokolog - シャドウバース対戦記録',
+  title: 'よこログ｜YNUsv - シャドウバース対戦記録',
   description: 'シャドウバースの対戦を記録し、戦績を分析しましょう。',
 };
 
