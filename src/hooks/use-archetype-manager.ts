@@ -36,7 +36,7 @@ export function useArchetypeManager() {
       setArchetypesInternal(migrated);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // This effect should run only once after initial load. archetypes at this point is the initially loaded value.
+  }, []); 
 
   const setArchetypes = useCallback((value: Archetype[] | ((val: Archetype[]) => Archetype[])) => {
     setArchetypesInternal(value);
@@ -56,9 +56,7 @@ export function useArchetypeManager() {
   };
 
   const updateArchetype = (updatedArchetype: Archetype) => {
-    if (updatedArchetype.isDefault) {
-        // Optionally, prevent full updates to default archetypes
-        // For now, we allow it but the UI might restrict it further
+    if (updatedArchetype.isDefault && updatedArchetype.id !== 'unknown') { // Allow 'unknown' to be "updated" if its class changed during migration
         console.warn("Attempting to update a default archetype. This might be restricted by UI.");
     }
     setArchetypes(prev =>
@@ -74,11 +72,10 @@ export function useArchetypeManager() {
   
   const deleteArchetype = (id: string) => {
     const archetypeToDelete = archetypes.find(arch => arch.id === id);
-    if (archetypeToDelete && archetypeToDelete.isDefault) {
-        // Prevent deletion of default archetypes.
-        // The UI in ManageArchetypesPage should already prevent triggering this for default archetypes.
-        console.warn(`Attempted to delete default archetype "${archetypeToDelete.name}". Operation aborted.`);
-        throw new Error("デフォルトのデッキタイプは削除できません。");
+    // Allow deletion of default archetypes as per new request, but not 'unknown'
+    if (archetypeToDelete && archetypeToDelete.id === 'unknown') {
+        console.warn(`Attempted to delete the special 'unknown' archetype. Operation aborted.`);
+        throw new Error("「不明な相手」デッキタイプは削除できません。");
     }
     setArchetypes(prev => prev.filter(arch => arch.id !== id));
   };
@@ -94,14 +91,13 @@ export function useArchetypeManager() {
     if (!unknownArchetypeFromStorage) {
       const unknownArchetypeTemplate = INITIAL_ARCHETYPES.find(arch => arch.id === 'unknown');
       if (unknownArchetypeTemplate) {
-        // Add missing 'unknown' archetype, ensuring it's migrated
         updatedArchetypesWorkingCopy = [migrateArchetypeClass(unknownArchetypeTemplate), ...updatedArchetypesWorkingCopy.filter(a => a.id !== 'unknown')];
         needsUpdate = true;
       }
     } else {
-      // 'unknown' archetype exists, ensure it's migrated
       const migratedUnknown = migrateArchetypeClass(unknownArchetypeFromStorage);
-      if (migratedUnknown.gameClass !== unknownArchetypeFromStorage.gameClass) { // Check if migration occurred
+      if (migratedUnknown.gameClass !== unknownArchetypeFromStorage.gameClass || 
+          migratedUnknown.name !== unknownArchetypeFromStorage.name) { 
         updatedArchetypesWorkingCopy = updatedArchetypesWorkingCopy.map(arch =>
           arch.id === 'unknown' ? migratedUnknown : arch
         );

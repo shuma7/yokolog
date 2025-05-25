@@ -38,11 +38,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit3, Trash2 } from "lucide-react";
-import { CLASS_ICONS, formatArchetypeNameWithSuffix } from "@/lib/game-data";
+import { CLASS_ICONS, formatArchetypeNameWithSuffix, GAME_CLASS_EN_TO_JP } from "@/lib/game-data";
 
 export default function ManageArchetypesPage() {
   const { archetypes, addArchetype, updateArchetype, deleteArchetype } = useArchetypeManager();
-  const { matches } = useMatchLogger();
+  const { matches, updateMatch } = useMatchLogger(); // Added updateMatch
   const { toast } = useToast();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -58,17 +58,39 @@ export default function ManageArchetypesPage() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (archetypeId: string) => {
+  const handleDelete = (archetypeToDelete: Archetype) => {
     try {
-      deleteArchetype(archetypeId);
+      // Update related matches before deleting the archetype
+      const relatedMatches = matches.filter(
+        match => match.userArchetypeId === archetypeToDelete.id || match.opponentArchetypeId === archetypeToDelete.id
+      );
+      const unknownArchetypeId = archetypes.find(a => a.id === 'unknown')?.id || 'unknown';
+
+      relatedMatches.forEach(match => {
+        let changed = false;
+        const updatedMatch = { ...match };
+        if (match.userArchetypeId === archetypeToDelete.id) {
+          updatedMatch.userArchetypeId = unknownArchetypeId;
+          changed = true;
+        }
+        if (match.opponentArchetypeId === archetypeToDelete.id) {
+          updatedMatch.opponentArchetypeId = unknownArchetypeId;
+          changed = true;
+        }
+        if (changed) {
+          updateMatch(updatedMatch);
+        }
+      });
+      
+      deleteArchetype(archetypeToDelete.id);
       toast({
         title: "削除完了",
-        description: "デッキタイプを削除しました。",
+        description: `デッキタイプ「${formatArchetypeNameWithSuffix(archetypeToDelete)}」を削除しました。`,
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "エラー",
-        description: "デッキタイプを削除できませんでした。",
+        description: error.message || "デッキタイプを削除できませんでした。",
         variant: "destructive",
       });
     }
@@ -120,7 +142,12 @@ export default function ManageArchetypesPage() {
   }, [archetypes]);
 
   const getMatchCount = (archetypeId: string) => {
-    return matches.filter(match => match.userArchetypeId === archetypeId).length;
+    return matches.filter(match => match.userArchetypeId === archetypeId || match.opponentArchetypeId === archetypeId).length;
+  };
+
+  const getJapaneseClassName = (gameClassValue: GameClass): string => {
+    const classDetail = ALL_GAME_CLASSES.find(gc => gc.value === gameClassValue);
+    return classDetail ? classDetail.label : gameClassValue;
   };
 
   return (
@@ -171,44 +198,50 @@ export default function ManageArchetypesPage() {
                             {getMatchCount(archetype.id)}
                           </TableCell>
                           <TableCell className="text-right">
-                            {!archetype.isDefault ? (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleEdit(archetype)}
-                                  className="mr-1 text-primary hover:text-primary/80"
-                                >
-                                  <Edit3 className="h-4 w-4" />
-                                </Button>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80">
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>本当によろしいですか？</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        この操作は元に戻せません。「{formatArchetypeNameWithSuffix(archetype)}」を完全に削除します。
-                                        関連する対戦記録のデッキタイプは「不明」として扱われるようになります。
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() => handleDelete(archetype.id)}
-                                        className="bg-destructive hover:bg-destructive/90"
-                                      >
-                                        削除
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </>
-                            ) : (
-                              <span className="text-xs text-muted-foreground italic">編集不可</span>
+                            {!archetype.isDefault && archetype.id !== 'unknown' && ( // 'unknown' archetype cannot be edited
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(archetype)}
+                                className="mr-1 text-primary hover:text-primary/80"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {archetype.id !== 'unknown' && ( // 'unknown' archetype cannot be deleted
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>本当によろしいですか？</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      この操作は元に戻せません。
+                                      「{getJapaneseClassName(archetype.gameClass)}」クラスのデッキタイプ
+                                      「{formatArchetypeNameWithSuffix(archetype)}」を完全に削除します。
+                                      関連する対戦記録のデッキタイプは「不明」として扱われるようになります。
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDelete(archetype)}
+                                      className="bg-destructive hover:bg-destructive/90"
+                                    >
+                                      削除
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                            {(archetype.isDefault || archetype.id === 'unknown') && archetype.id !== 'unknown' && !(!archetype.isDefault && archetype.id !== 'unknown') && ( // Show if default and not editable (but can be deleted)
+                                <span className="text-xs text-muted-foreground italic mr-2">編集不可</span>
+                            )}
+                            {archetype.id === 'unknown' && (
+                                 <span className="text-xs text-muted-foreground italic">編集・削除不可</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -250,7 +283,7 @@ export default function ManageArchetypesPage() {
           </DialogHeader>
           <ArchetypeForm
             onSubmit={handleSubmitForm}
-            initialData={currentArchetype || undefined} // Pass empty object if new, or current archetype
+            initialData={currentArchetype || undefined} 
             submitButtonText={currentArchetype?.id ? "更新" : "追加"}
           />
         </DialogContent>
@@ -258,5 +291,4 @@ export default function ManageArchetypesPage() {
     </div>
   );
 }
-
     
