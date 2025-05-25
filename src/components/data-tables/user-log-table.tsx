@@ -30,23 +30,23 @@ import { cn } from "@/lib/utils";
 
 
 interface UserLogTableProps {
-  matches: MatchData[]; 
+  matches: MatchData[];
   archetypes: Archetype[];
   onDeleteMatch: (matchId: string) => void;
   onEditRequest: (match: MatchData) => void;
   gameClassMapping: GameClassNameMap;
   isReadOnly?: boolean;
-  isMinimal?: boolean; 
+  isMinimal?: boolean;
 }
 
-export function UserLogTable({ 
-  matches, 
-  archetypes, 
-  onDeleteMatch, 
-  onEditRequest, 
-  gameClassMapping, 
+export function UserLogTable({
+  matches,
+  archetypes,
+  onDeleteMatch,
+  onEditRequest,
+  gameClassMapping,
   isReadOnly = false,
-  isMinimal = false 
+  isMinimal = false
 }: UserLogTableProps) {
   const getArchetypeDetails = (archetypeId: string): Archetype | undefined => {
     return archetypes.find(a => a.id === archetypeId);
@@ -76,32 +76,32 @@ export function UserLogTable({
   const totalMatches = matches.length;
 
   // Define styles based on isMinimal prop
-  const cellPaddingY = isMinimal ? 'py-0' : 'py-0'; 
+  const cellPaddingY = isMinimal ? 'py-0' : 'py-0';
   const cellPaddingX = isMinimal ? 'px-1' : 'px-2';
-  const fontSize = isMinimal ? 'text-[10px]' : 'text-sm'; 
-  const headerHeight = isMinimal ? 'h-auto' : 'h-auto'; 
-  const headerPaddingY = isMinimal ? 'py-0.5' : 'py-0'; 
+  const fontSize = isMinimal ? 'text-[10px]' : 'text-sm';
+  const headerHeight = isMinimal ? 'h-auto' : 'h-auto';
+  const headerPaddingY = isMinimal ? 'py-0.5' : 'py-0';
   const headerPaddingX = isMinimal ? 'px-1' : 'px-2';
-  const headerFontSize = isMinimal ? 'text-[10px]' : 'text-sm'; 
-  
-  const cellIconSize = isMinimal ? 'h-3 w-3' : 'h-3 w-3'; // Adjusted for personal log
-  const actionIconSize = isMinimal ? 'h-3 w-3' : 'h-3 w-3'; // Adjusted for personal log
-  
-  const actionButtonBaseClasses = "variant=\"ghost\""; 
-  const actionButtonSizeClasses = isMinimal 
-    ? "p-0.5 h-5 w-5 flex items-center justify-center" 
-    : "p-0.5 h-5 w-5 flex items-center justify-center"; // Adjusted for personal log
+  const headerFontSize = isMinimal ? 'text-[10px]' : 'text-sm';
+
+  const cellIconSize = isMinimal ? 'h-3 w-3' : 'h-3 w-3';
+  const actionIconSize = isMinimal ? 'h-3 w-3' : 'h-3 w-3';
+
+  const actionButtonBaseClasses = "variant=\"ghost\"";
+  const actionButtonSizeClasses = isMinimal
+    ? "p-0.5 h-5 w-5 flex items-center justify-center"
+    : "p-0.5 h-5 w-5 flex items-center justify-center";
 
   const badgeBaseClasses = "capitalize";
-  const badgeStyleClasses = isMinimal 
-    ? "px-1 py-0 text-[9px] leading-tight" 
-    : "px-1.5 py-0 text-[11px] leading-tight"; 
+  const badgeStyleClasses = isMinimal
+    ? "px-1 py-0 text-[9px] leading-tight"
+    : "px-1.5 py-0 text-[11px] leading-tight";
 
   const tableCellTextClasses = isMinimal ? "" : "leading-tight";
 
   return (
     <TooltipProvider>
-      <div className="rounded-lg border overflow-x-auto relative"> 
+      <div className="rounded-lg border overflow-x-auto relative">
         <Table className={fontSize}>
           <TableHeader>
             <TableRow>
@@ -147,8 +147,8 @@ export function UserLogTable({
                   <TableCell className={cn(cellPaddingY, cellPaddingX, tableCellTextClasses)}>{getTurnText(match.turn)}</TableCell>
                   <TableCell className={cn(cellPaddingY, cellPaddingX, tableCellTextClasses)}>
                     <Badge variant={match.result === 'win' ? 'default' : 'destructive'}
-                          className={cn(badgeBaseClasses, badgeStyleClasses, 
-                                      match.result === 'win' ? 'bg-lime-500 hover:bg-lime-600 text-white' : 'bg-red-600 hover:bg-red-700 text-white')}>
+                          className={cn(badgeBaseClasses, badgeStyleClasses,
+                                      match.result === 'win' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-rose-600 hover:bg-rose-700 text-white')}>
                       {getResultText(match.result)}
                     </Badge>
                   </TableCell>
