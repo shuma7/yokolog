@@ -315,9 +315,8 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                       </TableHead>
                     );
                   })}
-                  <TableHead className="sticky top-0 right-0 z-10 bg-card text-center min-w-[120px] p-2">
+                  <TableHead className="sticky top-0 z-10 bg-card text-center min-w-[120px] p-2"> {/* "Total" Header, sticky top */}
                     <div className="flex flex-col items-center">
-                       {/* Placeholder for icon if needed */}
                       <span className="text-sm font-semibold">合計</span>
                     </div>
                   </TableHead>
@@ -337,7 +336,6 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                       </TableCell>
                       {displayArchetypes.map(oppArch => {
                         const matchupStats = matchupData[userArch.id]?.[oppArch.id];
-                         // For diagonal cells (User vs User), display '-' or specific mirror match stats if desired
                         if (userArch.id === oppArch.id) {
                            return (
                             <TableCell key={oppArch.id} className="p-0 min-w-[120px] bg-muted/30">
@@ -351,7 +349,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                           </TableCell>
                         );
                       })}
-                      <TableCell className="sticky right-0 z-10 bg-card p-0 min-w-[120px]">
+                      <TableCell className="p-0 min-w-[120px] bg-card"> {/* "Total" Data Cell, no longer sticky right */}
                          {renderStatsCell(totalStatsForUserArch, userArch)}
                       </TableCell>
                     </TableRow>
@@ -365,5 +363,4 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
     </Card>
   );
 }
-
     
