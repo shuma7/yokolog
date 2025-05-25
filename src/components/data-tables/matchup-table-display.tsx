@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
 import type { MatchData, Archetype, GameClass, GameClassNameMap } from "@/types";
-import { ALL_GAME_CLASSES } from '@/types'; // Ensure this is imported
+import { ALL_GAME_CLASSES } from '@/types';
 import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON, formatArchetypeNameWithSuffix } from "@/lib/game-data";
 import {
   Table,
@@ -99,7 +98,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
        setSelectedArchetypeIds(availableArchetypesForFilter.map(a => a.id));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availableArchetypesForFilter]); // Only re-run if availableArchetypesForFilter changes
+  }, [availableArchetypesForFilter]);
 
   const displayArchetypes = useMemo(() => {
     return availableArchetypesForFilter
@@ -120,16 +119,16 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
 
         if (rowArch.id === colArch.id) { // Mirror match
           matches.forEach(match => {
-            if (match.userArchetypeId === rowArch.id && match.opponentArchetypeId === colArch.id) {
-              // Original perspective
-              overallItems.push({ result: match.result });
-              if (match.turn === 'first') firstTurnItems.push({ result: match.result });
-              else if (match.turn === 'second') secondTurnItems.push({ result: match.result });
+            if ((match.userArchetypeId === rowArch.id && match.opponentArchetypeId === colArch.id)) {
+                // User's direct perspective
+                overallItems.push({ result: match.result });
+                if (match.turn === 'first') firstTurnItems.push({ result: match.result });
+                else if (match.turn === 'second') secondTurnItems.push({ result: match.result });
 
-              // Implied opponent's perspective for symmetry in mirror
-              overallItems.push({ result: match.result === 'win' ? 'loss' : 'win' });
-              if (match.turn === 'first') secondTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' }); // Opponent was second
-              else if (match.turn === 'second') firstTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' }); // Opponent was first
+                // Implied opponent's perspective for symmetry
+                overallItems.push({ result: match.result === 'win' ? 'loss' : 'win' });
+                if (match.turn === 'first') secondTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' }); // Opponent was second
+                else if (match.turn === 'second') firstTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' }); // Opponent was first
             }
           });
         } else { // Non-mirror match
@@ -337,7 +336,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                   {displayArchetypes.map(oppArch => {
                     const OppIcon = oppArch.id === 'unknown' ? UNKNOWN_ARCHETYPE_ICON : CLASS_ICONS[oppArch.gameClass] || GENERIC_ARCHETYPE_ICON;
                     return (
-                      <TableHead key={oppArch.id} className="sticky top-0 z-20 bg-card text-center min-w-[70px] p-0.5">
+                      <TableHead key={oppArch.id} className="bg-card text-center min-w-[70px] p-0.5"> {/* Removed sticky top-0 z-20 */}
                         <div className="flex flex-col items-center">
                           <OppIcon className="h-3 w-3 mb-0.5" />
                           <span className="text-[8px] leading-tight break-all">{formatArchetypeNameWithSuffix(oppArch)}</span>
@@ -345,7 +344,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                       </TableHead>
                     );
                   })}
-                  <TableHead className="sticky top-0 z-20 bg-card text-center min-w-[70px] p-0.5">
+                  <TableHead className="bg-card text-center min-w-[70px] p-0.5"> {/* Removed sticky top-0 z-20 */}
                     <div className="flex flex-col items-center">
                        <span className="text-[8px] font-semibold leading-tight">合計</span>
                     </div>
@@ -386,4 +385,3 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
     </Card>
   );
 }
-
