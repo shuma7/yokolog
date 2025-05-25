@@ -66,8 +66,10 @@ export function MemberVictoryRankings({ matches, allArchetypes, gameClassMapping
         if (b.totalWins !== a.totalWins) {
           return b.totalWins - a.totalWins;
         }
-        const classA = gameClassMapping[a.gameClass!] || a.gameClass!;
-        const classB = gameClassMapping[b.gameClass!] || b.gameClass!;
+        // Ensure gameClass exists before accessing it for sorting
+        const classA = a.gameClass ? (gameClassMapping[a.gameClass] || a.gameClass) : '';
+        const classB = b.gameClass ? (gameClassMapping[b.gameClass] || b.gameClass) : '';
+        
         if (classA !== classB) {
           return classA.localeCompare(classB, 'ja');
         }
@@ -82,7 +84,7 @@ export function MemberVictoryRankings({ matches, allArchetypes, gameClassMapping
     matches.forEach(match => {
       if (match.result === 'win' && match.userId) {
         const userArchetype = allArchetypes.find(a => a.id === match.userArchetypeId);
-        if (userArchetype) {
+        if (userArchetype && userArchetype.gameClass && winsByClass[userArchetype.gameClass]) {
           winsByClass[userArchetype.gameClass].userWins[match.userId] = (winsByClass[userArchetype.gameClass].userWins[match.userId] || 0) + 1;
           winsByClass[userArchetype.gameClass].totalWins++;
         }
@@ -169,17 +171,18 @@ export function MemberVictoryRankings({ matches, allArchetypes, gameClassMapping
   return (
     <div className="space-y-4">
       {renderRankingTable(
-        "アーキタイプ別 勝利数ランキング",
-        "各デッキタイプでのユーザー別総勝利数です。",
-        archetypeRanking,
-        'archetype'
-      )}
-      {renderRankingTable(
         "クラス別 勝利数ランキング",
         "各クラスでのユーザー別総勝利数です。",
         classRanking,
         'class'
       )}
+      {renderRankingTable(
+        "アーキタイプ別 勝利数ランキング",
+        "各デッキタイプでのユーザー別総勝利数です。",
+        archetypeRanking,
+        'archetype'
+      )}
     </div>
   );
 }
+
