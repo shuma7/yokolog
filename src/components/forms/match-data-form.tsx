@@ -56,12 +56,12 @@ type UI_STEP =
   | 'result'
   | 'notes';
 
-const getArchetypeDisplayInfo = (archetypeId: string | undefined, archetypes: Archetype[], gameClassMapping: GameClassNameMap) => {
+const getArchetypeDisplayInfo = (archetypeId: string | undefined, archetypes: Archetype[]) => {
   if (!archetypeId) return null;
   const archetype = archetypes.find(a => a.id === archetypeId);
-  if (!archetype) return { name: "不明なデッキタイプ", gameClass: "" };
-  const className = gameClassMapping[archetype.gameClass] || archetype.gameClass;
-  return { name: `${archetype.name} (${archetype.abbreviation})`, gameClass: className, originalName: archetype.name };
+  if (!archetype) return { name: "不明なデッキタイプ" };
+  // Return only the name, without abbreviation or class for the summary
+  return { name: archetype.name };
 };
 
 const getTurnDisplay = (turn: "first" | "second" | "unknown" | undefined) => {
@@ -141,7 +141,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
       form.reset({
         userArchetypeId: initialData.userArchetypeId || "",
         opponentArchetypeId: initialData.opponentArchetypeId || "",
-        turn: initialData.turn, // Keep unknown if it is
+        turn: initialData.turn, 
         result: initialData.result,
         notes: initialData.notes || "",
       });
@@ -149,22 +149,22 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
       if (initialUserArch) setUserSelectedClass(initialUserArch.gameClass);
       const initialOpponentArch = archetypes.find(a => a.id === initialData.opponentArchetypeId);
       if (initialOpponentArch) setOpponentSelectedClass(initialOpponentArch.gameClass);
-      setCurrentUiStep('notes'); // For edit, go straight to notes/submit
+      setCurrentUiStep('notes'); 
     }
   }, [initialData, form, archetypes]);
 
   const handleUserClassSelect = (gameClass: GameClass) => {
     setUserSelectedClass(gameClass);
     form.setValue('userArchetypeId', '');
-    setIsUserArchetypeSelectOpen(true);
     setCurrentUiStep('userArchetype');
+    setTimeout(() => setIsUserArchetypeSelectOpen(true), 0); // Open select after state update
   };
 
   const handleOpponentClassSelect = (gameClass: GameClass) => {
     setOpponentSelectedClass(gameClass);
     form.setValue('opponentArchetypeId', '');
-    setIsOpponentArchetypeSelectOpen(true);
     setCurrentUiStep('opponentArchetype');
+     setTimeout(() => setIsOpponentArchetypeSelectOpen(true), 0); // Open select after state update
   };
 
   useEffect(() => {
@@ -176,11 +176,14 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
           setCurrentUiStep('opponentClass');
         } else if (name === 'opponentArchetypeId' && value.opponentArchetypeId && currentUiStep === 'opponentArchetype') {
           setCurrentUiStep('turn');
-        } else if (name === 'turn' && (value.turn === 'first' || value.turn === 'second') && currentUiStep === 'turn') {
+        } else if (name === 'turn' && (value.turn === 'first' || value.turn === 'second' || value.turn === 'unknown') && currentUiStep === 'turn') {
           setCurrentUiStep('result');
         } else if (name === 'result' && value.result && currentUiStep === 'result') {
           setCurrentUiStep('notes');
-          notesRef.current?.focus();
+          // Focus on notes field after result is selected
+          requestAnimationFrame(() => { // Ensure DOM is updated before focusing
+            notesRef.current?.focus();
+          });
         }
       }
     });
@@ -268,11 +271,11 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
   const showOpponentClass = initialData?.id || (currentUiStep === 'opponentClass' && form.getValues("userArchetypeId"));
   const showOpponentArchetype = initialData?.id || (currentUiStep === 'opponentArchetype' && opponentSelectedClass);
   const showTurn = initialData?.id || (currentUiStep === 'turn' && form.getValues("opponentArchetypeId"));
-  const showResult = initialData?.id || (currentUiStep === 'result' && (form.getValues("turn") === 'first' || form.getValues("turn") === 'second'));
+  const showResult = initialData?.id || (currentUiStep === 'result' && (form.getValues("turn") === 'first' || form.getValues("turn") === 'second' || form.getValues("turn") === 'unknown'));
   const showNotesAndSubmit = initialData?.id || (currentUiStep === 'notes' && form.getValues("result"));
 
-  const userArchetypeInfo = getArchetypeDisplayInfo(watchedUserArchetypeId, archetypes, gameClassMapping);
-  const opponentArchetypeInfo = getArchetypeDisplayInfo(watchedOpponentArchetypeId, archetypes, gameClassMapping);
+  const userArchetypeInfo = getArchetypeDisplayInfo(watchedUserArchetypeId, archetypes);
+  const opponentArchetypeInfo = getArchetypeDisplayInfo(watchedOpponentArchetypeId, archetypes);
   const turnInfo = getTurnDisplay(watchedTurn);
   const resultInfo = getResultDisplay(watchedResult);
 
@@ -284,21 +287,17 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          {(userSelectedClass || watchedUserArchetypeId || opponentSelectedClass || watchedOpponentArchetypeId || watchedTurn || watchedResult) && !initialData?.id && (
+          {(watchedUserArchetypeId || watchedOpponentArchetypeId || watchedTurn || watchedResult) && !initialData?.id && (
             <Card className="mb-6 bg-muted/30">
               <CardHeader className="pb-2 pt-4">
                 <CardTitle className="text-lg">現在の選択</CardTitle>
               </CardHeader>
               <CardContent className="text-sm space-y-1 pb-4">
-                {userSelectedClass && (
-                  <div><strong>自分のクラス:</strong> {gameClassMapping[userSelectedClass]}</div>
-                )}
+                {/* Removed "自分のクラス" display */}
                 {userArchetypeInfo && (
                   <div><strong>自分のデッキタイプ:</strong> {userArchetypeInfo.name}</div>
                 )}
-                {opponentSelectedClass && (
-                  <div><strong>相手のクラス:</strong> {gameClassMapping[opponentSelectedClass]}</div>
-                )}
+                {/* Opponent Class is not explicitly stored, opponent archetype implies class */}
                 {opponentArchetypeInfo && (
                   <div><strong>相手のデッキタイプ:</strong> {opponentArchetypeInfo.name}</div>
                 )}
@@ -500,5 +499,3 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
     </Card>
   );
 }
-
-    
