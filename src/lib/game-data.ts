@@ -41,13 +41,21 @@ export const formatArchetypeNameWithSuffix = (archetype: Pick<Archetype, 'name' 
   if (!archetype || !archetype.name || !archetype.gameClass) {
     return '不明';
   }
+  // Ensure the name itself is clean before appending suffix, though primary cleaning is in the hook for existing data.
+  let cleanName = archetype.name;
+  Object.values(GAME_CLASS_EN_TO_JP).forEach(jpClass => {
+    if (cleanName.endsWith(jpClass)) { // Only remove if it's a suffix
+      cleanName = cleanName.substring(0, cleanName.length - jpClass.length).trim();
+    }
+  });
+  
   const suffix = GAME_CLASS_SUFFIX_MAP[archetype.gameClass] || '';
-  return `${archetype.name}${suffix}`;
+  return `${cleanName}${suffix}`;
 };
 
 
 export const INITIAL_ARCHETYPES: Archetype[] = [
-  // 'unknown' archetype - class can be anything, but Forestcraft is a safe default
+  // 'unknown' archetype
   { id: 'unknown', name: '不明な相手', abbreviation: '不明', gameClass: 'Forestcraft', isDefault: true },
   // エルフ
   { id: uuidv4(), name: 'コントロール', abbreviation: 'コン', gameClass: 'Forestcraft', isDefault: true },
@@ -56,17 +64,16 @@ export const INITIAL_ARCHETYPES: Archetype[] = [
   { id: uuidv4(), name: '連携', abbreviation: '連携', gameClass: 'Swordcraft', isDefault: true },
   { id: uuidv4(), name: '進化', abbreviation: '進化', gameClass: 'Swordcraft', isDefault: true },
   // ウィッチ
-  { id: uuidv4(), name: 'スペル', abbreviation: 'スペ', gameClass: 'Runecraft', isDefault: true },
+  { id: uuidv4(), name: 'スペル', abbreviation: 'スペル', gameClass: 'Runecraft', isDefault: true },
   { id: uuidv4(), name: '秘術', abbreviation: '秘術', gameClass: 'Runecraft', isDefault: true },
   // ドラゴン
   { id: uuidv4(), name: 'ランプ', abbreviation: 'ランプ', gameClass: 'Dragoncraft', isDefault: true },
   { id: uuidv4(), name: 'バフ', abbreviation: 'バフ', gameClass: 'Dragoncraft', isDefault: true },
-  // ナイトメア (旧ネクロマンサー)
-  { id: uuidv4(), name: 'ラストワード', abbreviation: 'ラスワ', gameClass: 'Nightmare', isDefault: true }, // Changed class to Nightmare
-  { id: uuidv4(), name: 'ゴースト', abbreviation: 'ゴス', gameClass: 'Nightmare', isDefault: true }, // Changed class to Nightmare
-  // ナイトメア (旧ヴァンパイア)
-  { id: uuidv4(), name: '狂乱', abbreviation: '狂乱', gameClass: 'Nightmare', isDefault: true }, // Changed class to Nightmare
-  { id: uuidv4(), name: 'ハンドレス', abbreviation: 'ハン', gameClass: 'Nightmare', isDefault: true }, // Changed class to Nightmare
+  // ナイトメア (旧ネクロマンサー + 旧ヴァンパイア)
+  { id: uuidv4(), name: 'ラストワード', abbreviation: 'ラスワ', gameClass: 'Nightmare', isDefault: true },
+  { id: uuidv4(), name: 'ゴースト', abbreviation: 'ゴス', gameClass: 'Nightmare', isDefault: true },
+  { id: uuidv4(), name: '狂乱', abbreviation: '狂乱', gameClass: 'Nightmare', isDefault: true },
+  { id: uuidv4(), name: 'ハンドレス', abbreviation: 'ハン', gameClass: 'Nightmare', isDefault: true },
   // ビショップ
   { id: uuidv4(), name: '回復', abbreviation: '回復', gameClass: 'Havencraft', isDefault: true },
   { id: uuidv4(), name: '守護', abbreviation: '守護', gameClass: 'Havencraft', isDefault: true },
@@ -76,7 +83,6 @@ export const INITIAL_ARCHETYPES: Archetype[] = [
 ];
 
 export const getArchetypeWithIcon = (archetype: Archetype): ArchetypeWithIcon => {
-  // Ensure that even if an old class sneaks in, it gets a generic icon
   const icon = CLASS_ICONS[archetype.gameClass as GameClass] || GENERIC_ARCHETYPE_ICON;
   return {
     ...archetype,
