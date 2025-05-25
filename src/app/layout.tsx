@@ -26,10 +26,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className="dark">
+    <html lang="ja" className={cn(
+      "dark",
+      geistSans.variable,
+      geistMono.variable
+    )}>
       <body className={cn(
-        geistSans.variable,
-        geistMono.variable,
         "antialiased bg-background text-foreground"
       )}>
         <ClientLayoutWrapper>
