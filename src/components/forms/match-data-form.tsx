@@ -59,8 +59,8 @@ type UI_STEP =
 const getArchetypeDisplayInfo = (archetypeId: string | undefined, archetypes: Archetype[]) => {
   if (!archetypeId) return null;
   const archetype = archetypes.find(a => a.id === archetypeId);
+  // Display only name, no abbreviation
   if (!archetype) return { name: "不明なデッキタイプ" };
-  // Return only the name, without abbreviation or class for the summary
   return { name: archetype.name };
 };
 
@@ -109,7 +109,6 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
 
   const notesRef = useRef<HTMLTextAreaElement>(null);
 
-  // Watch form values for display
   const watchedUserArchetypeId = form.watch("userArchetypeId");
   const watchedOpponentArchetypeId = form.watch("opponentArchetypeId");
   const watchedTurn = form.watch("turn");
@@ -141,7 +140,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
       form.reset({
         userArchetypeId: initialData.userArchetypeId || "",
         opponentArchetypeId: initialData.opponentArchetypeId || "",
-        turn: initialData.turn, 
+        turn: initialData.turn,
         result: initialData.result,
         notes: initialData.notes || "",
       });
@@ -149,7 +148,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
       if (initialUserArch) setUserSelectedClass(initialUserArch.gameClass);
       const initialOpponentArch = archetypes.find(a => a.id === initialData.opponentArchetypeId);
       if (initialOpponentArch) setOpponentSelectedClass(initialOpponentArch.gameClass);
-      setCurrentUiStep('notes'); 
+      setCurrentUiStep('notes');
     }
   }, [initialData, form, archetypes]);
 
@@ -157,14 +156,14 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
     setUserSelectedClass(gameClass);
     form.setValue('userArchetypeId', '');
     setCurrentUiStep('userArchetype');
-    setTimeout(() => setIsUserArchetypeSelectOpen(true), 0); // Open select after state update
+    setTimeout(() => setIsUserArchetypeSelectOpen(true), 0);
   };
 
   const handleOpponentClassSelect = (gameClass: GameClass) => {
     setOpponentSelectedClass(gameClass);
     form.setValue('opponentArchetypeId', '');
     setCurrentUiStep('opponentArchetype');
-     setTimeout(() => setIsOpponentArchetypeSelectOpen(true), 0); // Open select after state update
+     setTimeout(() => setIsOpponentArchetypeSelectOpen(true), 0);
   };
 
   useEffect(() => {
@@ -180,8 +179,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
           setCurrentUiStep('result');
         } else if (name === 'result' && value.result && currentUiStep === 'result') {
           setCurrentUiStep('notes');
-          // Focus on notes field after result is selected
-          requestAnimationFrame(() => { // Ensure DOM is updated before focusing
+          requestAnimationFrame(() => {
             notesRef.current?.focus();
           });
         }
@@ -293,11 +291,9 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                 <CardTitle className="text-lg">現在の選択</CardTitle>
               </CardHeader>
               <CardContent className="text-sm space-y-1 pb-4">
-                {/* Removed "自分のクラス" display */}
                 {userArchetypeInfo && (
                   <div><strong>自分のデッキタイプ:</strong> {userArchetypeInfo.name}</div>
                 )}
-                {/* Opponent Class is not explicitly stored, opponent archetype implies class */}
                 {opponentArchetypeInfo && (
                   <div><strong>相手のデッキタイプ:</strong> {opponentArchetypeInfo.name}</div>
                 )}
@@ -396,7 +392,10 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                         <Button
                           type="button"
                           variant={field.value === 'first' ? 'default' : 'outline'}
-                          className="h-auto py-4 text-md sm:py-6 sm:text-lg"
+                          className={cn(
+                            "h-auto py-4 text-md sm:py-6 sm:text-lg",
+                            field.value === 'first' && "bg-pink-500 hover:bg-pink-600 border-pink-500 hover:border-pink-600 text-white"
+                          )}
                           onClick={() => field.onChange('first')}
                         >
                           先攻
@@ -404,7 +403,10 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                         <Button
                           type="button"
                           variant={field.value === 'second' ? 'default' : 'outline'}
-                          className="h-auto py-4 text-md sm:py-6 sm:text-lg"
+                          className={cn(
+                            "h-auto py-4 text-md sm:py-6 sm:text-lg",
+                            field.value === 'second' && "bg-blue-500 hover:bg-blue-600 border-blue-500 hover:border-blue-600 text-white"
+                          )}
                           onClick={() => field.onChange('second')}
                         >
                           後攻
@@ -431,7 +433,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                           variant={field.value === 'win' ? 'default' : 'outline'}
                           className={cn(
                             "h-auto py-4 text-md sm:py-6 sm:text-lg",
-                            field.value === 'win' && "bg-green-600 hover:bg-green-700 border-green-600 hover:border-green-700 text-white"
+                            field.value === 'win' && "bg-lime-500 hover:bg-lime-600 border-lime-500 hover:border-lime-600 text-white"
                           )}
                           onClick={() => field.onChange('win')}
                         >
