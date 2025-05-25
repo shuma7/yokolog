@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { MainHeader } from "@/components/layout/main-header";
 import { useMatchLogger } from "@/hooks/use-match-logger";
 import { useArchetypeManager } from "@/hooks/use-archetype-manager";
@@ -21,23 +21,26 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
+import { useUsername } from "@/hooks/use-username";
 
 export default function PersonalLogPage() {
   const { matches, deleteMatch, updateMatch } = useMatchLogger();
   const { archetypes } = useArchetypeManager();
   const { toast } = useToast();
+  const { username } = useUsername(); // Get current username
 
   const [editingMatch, setEditingMatch] = useState<MatchData | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const gameClassMapping: GameClassNameMap = GAME_CLASS_EN_TO_JP;
 
-  const sortedMatchesForDisplay = useMemo(() => 
-    [...matches].sort((a, b) => b.timestamp - a.timestamp), 
-    [matches]
-  );
+  // Filter matches for the current user and sort them
+  const currentUserMatches = useMemo(() => {
+    if (!username) return [];
+    return [...matches] // matches from useMatchLogger are already for the current user
+             .sort((a, b) => b.timestamp - a.timestamp);
+  }, [matches, username]);
 
   const handleDeleteMatch = (matchId: string) => {
     try {
@@ -61,10 +64,11 @@ export default function PersonalLogPage() {
   };
 
   const handleUpdateMatchSubmit = (data: MatchFormValues) => {
-    if (editingMatch) {
+    if (editingMatch && username) { // Ensure username and editingMatch are present
       try {
         const updatedMatchData: MatchData = {
           ...editingMatch,
+          userId: username, // Ensure userId is correctly assigned
           userArchetypeId: data.userArchetypeId,
           opponentArchetypeId: data.opponentArchetypeId,
           turn: data.turn,
@@ -103,24 +107,29 @@ export default function PersonalLogPage() {
       />
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="container mx-auto">
-          <Tabs defaultValue="log-list">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="log-list">ログ一覧</TabsTrigger>
-              <TabsTrigger value="summary-data">集計データ</TabsTrigger>
-            </TabsList>
-            <TabsContent value="log-list" className="mt-6">
-              <UserLogTable
-                matches={sortedMatchesForDisplay}
-                archetypes={archetypes}
-                onDeleteMatch={handleDeleteMatch}
-                onEditRequest={handleEditRequest}
-                gameClassMapping={gameClassMapping}
-              />
-            </TabsContent>
-            <TabsContent value="summary-data" className="mt-6">
-              <AggregatedStatsDisplay matches={matches} archetypes={archetypes} gameClassMapping={gameClassMapping} />
-            </TabsContent>
-          </Tabs>
+          {!username ? (
+            <p className="text-center text-muted-foreground">ユーザー名が設定されていません。先にユーザー名を設定してください。</p>
+          ) : (
+            <Tabs defaultValue="log-list">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="log-list">ログ一覧</TabsTrigger>
+                <TabsTrigger value="summary-data">集計データ</TabsTrigger>
+              </TabsList>
+              <TabsContent value="log-list" className="mt-6">
+                <UserLogTable
+                  matches={currentUserMatches}
+                  archetypes={archetypes}
+                  onDeleteMatch={handleDeleteMatch}
+                  onEditRequest={handleEditRequest}
+                  gameClassMapping={gameClassMapping}
+                  isReadOnly={false} // Logs on this page are always editable by the owner
+                />
+              </TabsContent>
+              <TabsContent value="summary-data" className="mt-6">
+                <AggregatedStatsDisplay matches={currentUserMatches} archetypes={archetypes} gameClassMapping={gameClassMapping} />
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
       </main>
 
@@ -145,9 +154,6 @@ export default function PersonalLogPage() {
               gameClassMapping={gameClassMapping}
               submitButtonText="対戦情報を更新"
             />
-             <DialogFooter>
-                {/* MatchDataForm includes the submit button, so footer can be minimal or for cancel */}
-             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

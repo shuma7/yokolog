@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, ListChecks, PlusSquare, BotMessageSquare, Users } from 'lucide-react'; // Added Users
+import { BarChart3, ListChecks, PlusSquare, BotMessageSquare, Users, LogOut } from 'lucide-react';
 import {
   Sidebar,
   SidebarHeader,
@@ -13,17 +13,26 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar'; 
+import { useUsername } from '@/hooks/use-username';
+import { Button } from '@/components/ui/button';
 
 const navItems = [
   { href: '/', label: '対戦追加', icon: PlusSquare },
   { href: '/log', label: '個人ログ', icon: ListChecks },
   { href: '/matchups', label: '相性表', icon: BarChart3 },
-  { href: '/archetypes/new', label: 'デッキタイプ管理', icon: BotMessageSquare }, // Changed label
-  { href: '/members', label: 'メンバーデータ', icon: Users }, // Added Members page
+  { href: '/archetypes/new', label: 'デッキタイプ管理', icon: BotMessageSquare },
+  { href: '/members', label: 'メンバーデータ', icon: Users },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { username, setUsername } = useUsername();
+
+  const handleLogout = () => {
+    setUsername(null); // Clear the username to "logout"
+    // Optionally, redirect to home or a login page if you had one
+    // For now, ClientLayoutWrapper will show the UsernameModal again
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -45,7 +54,7 @@ export function AppSidebar() {
             <SidebarMenuItem key={item.href}>
               <Link href={item.href} passHref legacyBehavior>
                 <SidebarMenuButton
-                  isActive={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href) && item.href !== '/')}
+                  isActive={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))}
                   tooltip={{children: item.label, side: "right"}}
                 >
                   <item.icon className="h-5 w-5" />
@@ -57,11 +66,29 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2 mt-auto border-t border-sidebar-border">
-         <div className="flex items-center justify-center p-2 group-data-[collapsible=icon]:justify-center">
-            <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">対戦記録アプリ</span>
-        </div>
+         {username && (
+           <div className="flex flex-col items-center gap-2 p-2 group-data-[collapsible=icon]:justify-center">
+              <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden truncate max-w-full">
+                ユーザー: {username}
+              </span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleLogout} 
+                className="w-full group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:p-2"
+                title="ログアウト"
+              >
+                <LogOut className="h-4 w-4 group-data-[collapsible=icon]:m-0 group-data-[collapsible=expanded]:mr-2" />
+                <span className="group-data-[collapsible=icon]:hidden">ログアウト</span>
+              </Button>
+           </div>
+         )}
+         {!username && (
+            <div className="flex items-center justify-center p-2 group-data-[collapsible=icon]:justify-center">
+                <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">ログインしていません</span>
+            </div>
+         )}
       </SidebarFooter>
     </Sidebar>
   );
 }
-

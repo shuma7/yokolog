@@ -1,63 +1,77 @@
 "use client";
 
 import { v4 as uuidv4 } from 'uuid';
-import useLocalStorage from './use-local-storage';
 import type { MatchData } from '@/types';
-// import { useUsername } from './use-username'; // Removed useUsername
-import { useEffect, useState } from 'react';
-
-const MATCH_LOGS_KEY_GLOBAL = 'yokolog_match_logs_global'; // Changed to a global key
+import { useUsername } from './use-username';
+import { useEffect, useState, useCallback } from 'react';
 
 export function useMatchLogger() {
-  // const { username } = useUsername(); // Removed username logic
-  // const [userMatchLogsKey, setUserMatchLogsKey] = useState<string | null>(null);
+  const { username } = useUsername();
+  const [matches, setMatches] = useState<MatchData[]>([]);
 
-  // useEffect(() => {
-  //   if (username) {
-  //     setUserMatchLogsKey(`${MATCH_LOGS_KEY_PREFIX}${username}`);
-  //   } else {
-  //     setUserMatchLogsKey(null);
-  //   }
-  // }, [username]);
+  const getStorageKey = useCallback((user: string | null) => {
+    return user ? `yokolog_match_logs_${user}` : null;
+  }, []);
 
-  const [matches, setMatchesInternal] = useLocalStorage<MatchData[]>(MATCH_LOGS_KEY_GLOBAL, []);
-  
-  // This state ensures that we return an empty array if there's no username,
-  // preventing useLocalStorage from trying to use an empty key initially.
-  // const [effectiveMatches, setEffectiveMatches] = useState<MatchData[]>([]);
+  // Load matches when username changes
+  useEffect(() => {
+    const storageKey = getStorageKey(username);
+    if (storageKey) {
+      const item = window.localStorage.getItem(storageKey);
+      setMatches(item ? JSON.parse(item) : []);
+    } else {
+      setMatches([]); // Clear matches if no user or key is null
+    }
+  }, [username, getStorageKey]);
 
-  // useEffect(() => {
-  //   if (username && userMatchLogsKey) { // Condition simplified
-  //     setEffectiveMatches(matches);
-  //   } else {
-  //     setEffectiveMatches([]);
-  //   }
-  // }, [username, userMatchLogsKey, matches]);
-
+  const saveMatches = useCallback((updatedMatches: MatchData[], user: string | null) => {
+    const storageKey = getStorageKey(user);
+    if (storageKey) {
+      window.localStorage.setItem(storageKey, JSON.stringify(updatedMatches));
+    }
+  }, [getStorageKey]);
 
   const addMatch = (data: Omit<MatchData, 'id' | 'timestamp' | 'userId'>) => {
-    // if (!username) { // Removed username check
-    //   return null;
-    // }
+    if (!username) {
+      console.warn("Cannot add match: username not set.");
+      return null;
+    }
     const newMatch: MatchData = {
       ...data,
       id: uuidv4(),
       timestamp: Date.now(),
-      // userId: username, // Removed userId assignment
+      userId: username,
     };
-    setMatchesInternal(prev => [newMatch, ...prev]);
+    const updatedMatches = [newMatch, ...matches];
+    setMatches(updatedMatches);
+    saveMatches(updatedMatches, username);
     return newMatch;
   };
 
   const deleteMatch = (id: string) => {
-    // if (!username) return; // Removed username check
-    setMatchesInternal(prev => prev.filter(match => match.id !== id));
+    if (!username) {
+      console.warn("Cannot delete match: username not set.");
+      return;
+    }
+    const updatedMatches = matches.filter(match => match.id !== id);
+    setMatches(updatedMatches);
+    saveMatches(updatedMatches, username);
   };
   
-  const updateMatch = (updatedMatch: MatchData) => {
-    // if(!username) return; // Removed username check
-    setMatchesInternal(prev => prev.map(m => m.id === updatedMatch.id ? updatedMatch : m));
+  const updateMatch = (updatedMatchData: MatchData) => {
+    if(!username) {
+      console.warn("Cannot update match: username not set.");
+      return;
+    }
+    // Ensure the updated match still has the correct userId or is for the current user
+    if (updatedMatchData.userId !== username) {
+        console.error("Attempted to update a match that does not belong to the current user.");
+        return;
+    }
+    const updatedMatches = matches.map(m => m.id === updatedMatchData.id ? updatedMatchData : m);
+    setMatches(updatedMatches);
+    saveMatches(updatedMatches, username);
   };
 
-  return { matches, addMatch, deleteMatch, updateMatch }; // Return matches directly
+  return { matches, addMatch, deleteMatch, updateMatch };
 }

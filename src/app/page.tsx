@@ -7,13 +7,23 @@ import { useArchetypeManager } from "@/hooks/use-archetype-manager";
 import { useMatchLogger } from "@/hooks/use-match-logger";
 import { useToast } from "@/hooks/use-toast";
 import { GAME_CLASS_EN_TO_JP } from "@/lib/game-data";
+import { useUsername } from "@/hooks/use-username"; // Import useUsername
 
 export default function HomePage() { 
   const { archetypes } = useArchetypeManager();
   const { addMatch } = useMatchLogger();
   const { toast } = useToast();
+  const { username } = useUsername(); // Get username
 
   const handleSubmit = (data: MatchFormValues, resetFormCallback: () => void) => {
+    if (!username) { // Check if username is set
+      toast({
+        title: "エラー",
+        description: "ユーザー名が設定されていません。対戦を記録できません。",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
       const newMatch = addMatch(data);
       if (newMatch) { 
@@ -21,7 +31,7 @@ export default function HomePage() {
           title: "対戦記録完了",
           description: "対戦が正常に記録されました。",
         });
-        resetFormCallback(); // Call the reset function after successful submission
+        resetFormCallback(); 
       } else {
          toast({
           title: "エラー",

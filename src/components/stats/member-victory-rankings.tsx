@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { MatchData, Archetype, GameClass, GameClassNameMap, GameClassDetail } from "@/types";
+import type { MatchData, Archetype, GameClass, GameClassNameMap } from "@/types";
 import { ALL_GAME_CLASSES } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from "@/components/ui/table";
@@ -9,9 +9,10 @@ import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON, formatArch
 import { useMemo } from "react";
 
 interface MemberVictoryRankingsProps {
-  matches: MatchData[];
+  matches: MatchData[]; // Should be for a specific user, or all if global context
   allArchetypes: Archetype[];
   gameClassMapping: GameClassNameMap;
+  usernameForDisplay?: string; // To clarify whose rankings are shown
 }
 
 interface RankedItem {
@@ -19,16 +20,18 @@ interface RankedItem {
   name: string;
   wins: number;
   icon?: React.ElementType;
-  gameClass?: GameClass; // For sorting archetypes by class
+  gameClass?: GameClass; 
 }
 
-export function MemberVictoryRankings({ matches, allArchetypes, gameClassMapping }: MemberVictoryRankingsProps) {
+export function MemberVictoryRankings({ matches, allArchetypes, gameClassMapping, usernameForDisplay }: MemberVictoryRankingsProps) {
 
   const archetypeRanking = useMemo(() => {
     const winsByArchetype: Record<string, { archetype: Archetype; wins: number }> = {};
 
     matches.forEach(match => {
-      if (match.result === 'win') {
+      // Ensure match belongs to the user if usernameForDisplay is provided (though filtering happens before)
+      // And result is a win for the user of these logs.
+      if (match.result === 'win') { 
         const userArchetype = allArchetypes.find(a => a.id === match.userArchetypeId);
         if (userArchetype) {
           if (!winsByArchetype[userArchetype.id]) {
@@ -55,7 +58,6 @@ export function MemberVictoryRankings({ matches, allArchetypes, gameClassMapping
         if (b.wins !== a.wins) {
           return b.wins - a.wins;
         }
-        // Secondary sort by class name, then archetype name
         const classA = gameClassMapping[a.gameClass!] || a.gameClass!;
         const classB = gameClassMapping[b.gameClass!] || b.gameClass!;
         if (classA !== classB) {
@@ -94,74 +96,64 @@ export function MemberVictoryRankings({ matches, allArchetypes, gameClassMapping
 
   if (matches.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>勝利数ランキング</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-center text-muted-foreground py-8">集計対象の対戦データがありません。</p>
-        </CardContent>
-      </Card>
+      <p className="text-center text-muted-foreground py-8">
+        {usernameForDisplay ? `${usernameForDisplay}さんの` : ""}集計対象の対戦データがありません。
+      </p>
     );
   }
   
   const renderRankingTable = (title: string, description: string, rankingData: RankedItem[], type: 'archetype' | 'class') => (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {rankingData.length === 0 ? (
-          <p className="text-center text-muted-foreground py-4">
-            {type === 'archetype' ? "勝利記録のあるデッキタイプがありません。" : "勝利記録のあるクラスがありません。"}
-          </p>
-        ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[80px] text-center">順位</TableHead>
-                  <TableHead>{type === 'archetype' ? "デッキタイプ名" : "クラス名"}</TableHead>
-                  <TableHead className="text-right">勝利数</TableHead>
+    <div className="mb-6"> {/* Replaced Card with div for styling within parent Card */}
+      <h3 className="text-lg font-semibold mb-1">{title}</h3>
+      <p className="text-sm text-muted-foreground mb-3">{description}</p>
+      {rankingData.length === 0 ? (
+        <p className="text-center text-muted-foreground py-4">
+          {type === 'archetype' ? "勝利記録のあるデッキタイプがありません。" : "勝利記録のあるクラスがありません。"}
+        </p>
+      ) : (
+        <div className="rounded-md border max-h-[400px] overflow-y-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="sticky top-0 bg-card w-[80px] text-center">順位</TableHead>
+                <TableHead className="sticky top-0 bg-card">{type === 'archetype' ? "デッキタイプ名" : "クラス名"}</TableHead>
+                <TableHead className="sticky top-0 bg-card text-right">勝利数</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rankingData.map((item, index) => (
+                <TableRow key={item.id}>
+                  <TableCell className="text-center font-medium">{index + 1}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {item.icon && <item.icon className="h-5 w-5 text-muted-foreground" />}
+                      {item.name}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-semibold">{item.wins}勝</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rankingData.map((item, index) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="text-center font-medium">{index + 1}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {item.icon && <item.icon className="h-5 w-5 text-muted-foreground" />}
-                        {item.name}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">{item.wins}勝</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-               {rankingData.length === 0 && (
-                <TableCaption>表示できるデータがありません。</TableCaption>
-              )}
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              ))}
+            </TableBody>
+             {rankingData.length === 0 && (
+              <TableCaption>表示できるデータがありません。</TableCaption>
+            )}
+          </Table>
+        </div>
+      )}
+    </div>
   );
 
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4"> {/* Changed space-y-6 to space-y-4 for tighter layout */}
       {renderRankingTable(
-        "アーキタイプ別 勝利数ランキング",
-        "各デッキタイプが記録した総勝利数のランキングです。(全ユーザー合計)",
+        "アーキタイプ別 勝利数",
+        `${usernameForDisplay || "選択ユーザー"}の使用デッキタイプ別総勝利数です。`,
         archetypeRanking,
         'archetype'
       )}
       {renderRankingTable(
-        "クラス別 勝利数ランキング",
-        "各クラスが記録した総勝利数のランキングです。(全ユーザー合計)",
+        "クラス別 勝利数",
+        `${usernameForDisplay || "選択ユーザー"}の使用クラス別総勝利数です。`,
         classRanking,
         'class'
       )}

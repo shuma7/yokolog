@@ -39,9 +39,9 @@ export interface MatchData {
   userArchetypeId: string; 
   opponentArchetypeId: string; 
   turn: "first" | "second" | "unknown";
-  result: "win" | "loss"; // Removed "draw"
+  result: "win" | "loss";
   notes?: string;
-  // userId?: string; // Temporarily removed for non-auth version
+  userId: string; // Added userId, it's now required
 }
 
 export interface ArchetypeWithIcon extends Archetype {

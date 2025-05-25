@@ -1,8 +1,8 @@
 "use client";
 
-// import { useState, useEffect } from 'react'; // Removed useState, useEffect
-// import { useUsername } from '@/hooks/use-username'; // Removed useUsername
-// import { UsernameModal } from '@/components/auth/username-modal'; // Removed UsernameModal
+import { useState, useEffect } from 'react';
+import { useUsername } from '@/hooks/use-username';
+import { UsernameModal } from '@/components/auth/username-modal';
 import { AppSidebar } from '@/components/layout/sidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
@@ -11,31 +11,34 @@ export default function ClientLayoutWrapper({
 }: {
   children: React.ReactNode;
 }) {
-  // const { username, setUsername } = useUsername(); // Removed
-  // const [isUsernameChecked, setIsUsernameChecked] = useState(false); // Removed
+  const { username, setUsername } = useUsername();
+  const [isUsernameChecked, setIsUsernameChecked] = useState(false);
 
-  // useEffect(() => { // Removed
-  //   // This effect ensures that we don't render the UI (or modal) until
-  //   // the username has been loaded from localStorage.
-  //   setIsUsernameChecked(true);
-  // }, [username]);
+  useEffect(() => {
+    // This effect ensures that we don't render the UI (or modal) until
+    // the username has been loaded from localStorage.
+    // Check is only relevant on initial mount.
+    if (username !== undefined) { // Check if username has been loaded from localStorage
+        setIsUsernameChecked(true);
+    }
+  }, [username]);
 
-  // const handleUsernameSet = (newUsername: string) => { // Removed
-  //   setUsername(newUsername);
-  // };
+  const handleUsernameSet = (newUsername: string) => {
+    setUsername(newUsername);
+  };
 
-  // if (!isUsernameChecked) { // Removed
-  //   // Optional: Render a loading state or null while checking username
-  //   return (
-  //     <div className="flex h-screen w-screen items-center justify-center bg-background">
-  //       <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-  //     </div>
-  //   );
-  // }
+  if (!isUsernameChecked) {
+    // Optional: Render a loading state or null while checking username
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      </div>
+    );
+  }
 
-  // if (!username) { // Removed
-  //   return <UsernameModal onUsernameSet={handleUsernameSet} />;
-  // }
+  if (!username) {
+    return <UsernameModal onUsernameSet={handleUsernameSet} />;
+  }
 
   return (
     <SidebarProvider>

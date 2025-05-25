@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { MainHeader } from "@/components/layout/main-header";
-import { useMatchLogger } from "@/hooks/use-match-logger";
+// import { useMatchLogger } from "@/hooks/use-match-logger"; // Not needed for reading other users' logs directly
 import { useArchetypeManager } from "@/hooks/use-archetype-manager";
 import { UserLogTable } from "@/components/data-tables/user-log-table";
 import { MemberVictoryRankings } from "@/components/stats/member-victory-rankings";
@@ -18,87 +18,73 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MatchDataForm, type MatchFormValues } from "@/components/forms/match-data-form";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
+import { Card, CardDescription, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useUsername } from "@/hooks/use-username"; // For current user context
 
 export default function MembersPage() {
-  const { matches, deleteMatch, updateMatch } = useMatchLogger();
   const { archetypes } = useArchetypeManager();
   const { toast } = useToast();
+  const { username: currentUsername } = useUsername(); // Get current logged-in username
 
-  const [editingMatch, setEditingMatch] = useState<MatchData | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<string>("all"); // Placeholder
+  const [discoveredUsers, setDiscoveredUsers] = useState<string[]>([]);
+  const [selectedUsername, setSelectedUsername] = useState<string>("");
+  const [selectedUserMatches, setSelectedUserMatches] = useState<MatchData[]>([]);
 
   const gameClassMapping: GameClassNameMap = GAME_CLASS_EN_TO_JP;
 
-  // For UserLogTable, matches should be sorted reverse-chronologically
-  const sortedMatchesForDisplay = useMemo(() =>
-    [...matches].sort((a, b) => b.timestamp - a.timestamp),
-    [matches]
-  );
+  useEffect(() => {
+    // Discover users by scanning localStorage for match log keys
+    const users: string[] = [];
+    if (typeof window !== 'undefined') {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('yokolog_match_logs_')) {
+          users.push(key.replace('yokolog_match_logs_', ''));
+        }
+      }
+    }
+    setDiscoveredUsers(users.sort());
+    // Default to current user if they exist in discovered users, or first user
+    if (currentUsername && users.includes(currentUsername)) {
+      setSelectedUsername(currentUsername);
+    } else if (users.length > 0) {
+      setSelectedUsername(users[0]);
+    }
+  }, [currentUsername]);
 
-  // In a real multi-user scenario, you would filter matches by selectedMember here.
-  // For now, it always shows all matches.
-  const memberLogsToDisplay = sortedMatchesForDisplay;
+  useEffect(() => {
+    // Load matches for the selected user
+    if (selectedUsername && typeof window !== 'undefined') {
+      const item = localStorage.getItem(`yokolog_match_logs_${selectedUsername}`);
+      const matchesRaw = item ? JSON.parse(item) : [];
+      // Sort matches for display: newest first
+      const sortedMatches = [...matchesRaw].sort((a,b) => b.timestamp - a.timestamp);
+      setSelectedUserMatches(sortedMatches);
+    } else {
+      setSelectedUserMatches([]);
+    }
+  }, [selectedUsername]);
 
+
+  // For UserLogTable, we pass selectedUserMatches which is already sorted.
+  // Editing/Deleting from other users' logs is disabled in UserLogTable for simplicity.
+  // If such functionality is needed, it would require careful handling of 'saveMatches' for other users.
   const handleDeleteMatch = (matchId: string) => {
-    try {
-      deleteMatch(matchId);
-      toast({
-        title: "対戦削除完了",
-        description: "対戦記録を削除しました。",
-      });
-    } catch (error) {
-      toast({
-        title: "エラー",
-        description: "対戦記録を削除できませんでした。",
+     toast({
+        title: "操作不可",
+        description: "他のユーザーのログはここから削除できません。",
         variant: "destructive",
       });
-    }
   };
 
   const handleEditRequest = (match: MatchData) => {
-    setEditingMatch(match);
-    setIsEditDialogOpen(true);
+     toast({
+        title: "操作不可",
+        description: "他のユーザーのログはここから編集できません。",
+        variant: "destructive",
+      });
   };
 
-  const handleUpdateMatchSubmit = (data: MatchFormValues) => {
-    if (editingMatch) {
-      try {
-        const updatedMatchData: MatchData = {
-          ...editingMatch,
-          userArchetypeId: data.userArchetypeId,
-          opponentArchetypeId: data.opponentArchetypeId,
-          turn: data.turn,
-          result: data.result,
-          notes: data.notes,
-        };
-        updateMatch(updatedMatchData);
-        toast({
-          title: "対戦更新完了",
-          description: "対戦記録を更新しました。",
-        });
-        setIsEditDialogOpen(false);
-        setEditingMatch(null);
-      } catch (error) {
-        console.error("対戦の更新に失敗しました:", error);
-        toast({
-          title: "エラー",
-          description: "対戦を更新できませんでした。",
-          variant: "destructive",
-        });
-      }
-    }
-  };
 
   return (
     <div className="flex flex-1 flex-col">
@@ -111,66 +97,66 @@ export default function MembersPage() {
               <TabsTrigger value="member-logs">メンバーログ</TabsTrigger>
             </TabsList>
             <TabsContent value="victory-rankings" className="mt-6">
-              <MemberVictoryRankings matches={matches} allArchetypes={archetypes} gameClassMapping={gameClassMapping} />
+               <Card>
+                <CardHeader>
+                    <CardTitle>勝利数ランキング</CardTitle>
+                    <CardDescription>
+                        {selectedUsername ? `${selectedUsername}さんの記録に基づいたランキングです。` : "メンバーを選択してください。"}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <MemberVictoryRankings 
+                        matches={selectedUserMatches} 
+                        allArchetypes={archetypes} 
+                        gameClassMapping={gameClassMapping} 
+                        usernameForDisplay={selectedUsername || "選択ユーザー"}
+                    />
+                </CardContent>
+               </Card>
             </TabsContent>
             <TabsContent value="member-logs" className="mt-6 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>メンバー選択</CardTitle>
+                  <CardTitle>メンバーログ表示</CardTitle>
                    <CardDescription>
-                    現在、個別のユーザーアカウント機能は実装されていません。
-                    そのため、以下のログは全ユーザーの統合ログが表示されます。
+                    表示したいメンバーを選択してください。
                   </CardDescription>
                 </CardHeader>
-                 <div className="p-6 pt-0">
-                    <Select value={selectedMember} onValueChange={setSelectedMember} disabled>
+                 <CardContent>
+                    <Select 
+                        value={selectedUsername} 
+                        onValueChange={setSelectedUsername}
+                        disabled={discoveredUsers.length === 0}
+                    >
                         <SelectTrigger className="w-full md:w-[280px]">
                         <SelectValue placeholder="メンバーを選択" />
                         </SelectTrigger>
                         <SelectContent>
-                        <SelectItem value="all">全てのログ (現バージョン)</SelectItem>
-                        {/* In the future, list actual members here */}
+                          {discoveredUsers.length === 0 && <SelectItem value="no-users" disabled>記録のあるユーザーがいません</SelectItem>}
+                          {discoveredUsers.map(user => (
+                            <SelectItem key={user} value={user}>{user}</SelectItem>
+                          ))}
                         </SelectContent>
                     </Select>
-                 </div>
+                 </CardContent>
               </Card>
               
               <UserLogTable
-                matches={memberLogsToDisplay}
+                matches={selectedUserMatches} // Displaying selected user's matches
                 archetypes={archetypes}
-                onDeleteMatch={handleDeleteMatch}
-                onEditRequest={handleEditRequest}
+                onDeleteMatch={handleDeleteMatch} // Operations on other users' logs are disabled
+                onEditRequest={handleEditRequest} // Operations on other users' logs are disabled
                 gameClassMapping={gameClassMapping}
+                isReadOnly={selectedUsername !== currentUsername} // Pass read-only flag
               />
             </TabsContent>
           </Tabs>
         </div>
       </main>
-
-      {editingMatch && (
-        <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
-          if (!open) {
-            setEditingMatch(null);
-          }
-          setIsEditDialogOpen(open);
-        }}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>対戦編集</DialogTitle>
-              <DialogDescription>
-                対戦の詳細を編集します。変更後「更新」ボタンを押してください。
-              </DialogDescription>
-            </DialogHeader>
-            <MatchDataForm
-              archetypes={archetypes}
-              onSubmit={handleUpdateMatchSubmit}
-              initialData={editingMatch}
-              gameClassMapping={gameClassMapping}
-              submitButtonText="対戦情報を更新"
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Edit dialog is removed from here as editing other users' logs is complex without a backend
+          and direct localStorage manipulation for other users is risky.
+          If editing current user's logs from here is desired, `useMatchLogger` needs to be used carefully.
+      */}
     </div>
   );
 }
