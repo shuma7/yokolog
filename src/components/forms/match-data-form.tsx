@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { Archetype, MatchData, GameClassNameMap, GameClass } from "@/types";
 import { ALL_GAME_CLASSES } from '@/types';
-import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON } from '@/lib/game-data';
+import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON, formatArchetypeNameWithSuffix, GAME_CLASS_SUFFIX_MAP } from '@/lib/game-data';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -60,7 +60,7 @@ const getArchetypeDisplayInfo = (archetypeId: string | undefined, archetypes: Ar
   if (!archetypeId) return null;
   const archetype = archetypes.find(a => a.id === archetypeId);
   if (!archetype) return { name: "不明なデッキタイプ" };
-  return { name: archetype.name };
+  return { name: formatArchetypeNameWithSuffix(archetype) };
 };
 
 const getTurnDisplay = (turn: "first" | "second" | "unknown" | undefined) => {
@@ -177,7 +177,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
           setCurrentUiStep('result');
         } else if (name === 'result' && value.result && currentUiStep === 'result') {
           setCurrentUiStep('notes');
-          requestAnimationFrame(() => {
+          requestAnimationFrame(() => { // Ensure DOM is updated before focusing
             notesRef.current?.focus();
           });
         }
@@ -247,12 +247,11 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
     const Icon = archetype.id === 'unknown'
       ? UNKNOWN_ARCHETYPE_ICON
       : CLASS_ICONS[archetype.gameClass] || GENERIC_ARCHETYPE_ICON;
-    const displayClass = gameClassMapping[archetype.gameClass] || archetype.gameClass;
     return (
       <SelectItem key={archetype.id} value={archetype.id}>
         <div className="flex items-center gap-2">
           <Icon className="h-4 w-4 text-muted-foreground" />
-          <span>{archetype.name} ({archetype.abbreviation}) - {displayClass}</span>
+          <span>{formatArchetypeNameWithSuffix(archetype)}</span>
         </div>
       </SelectItem>
     );
@@ -538,5 +537,3 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
     </Card>
   );
 }
-
-    

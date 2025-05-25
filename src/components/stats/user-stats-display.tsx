@@ -1,10 +1,11 @@
+
 "use client";
 
 import type { MatchData, Archetype, GameClass, GameClassNameMap } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON } from "@/lib/game-data";
+import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, formatArchetypeNameWithSuffix } from "@/lib/game-data";
 
 interface UserStatsDisplayProps {
   matches: MatchData[];
@@ -20,20 +21,18 @@ interface StatItem {
 }
 
 function calculateWinRate(wins: number, gamesPlayed: number): number {
-  // Calculate win rate based on wins and (wins + losses), draws are excluded from this specific calculation.
   return gamesPlayed > 0 ? parseFloat(((wins / gamesPlayed) * 100).toFixed(1)) : 0;
 }
 
 export function UserStatsDisplay({ matches, archetypes, gameClassMapping }: UserStatsDisplayProps) {
   if (matches.length === 0) {
-    return null; 
+    return null;
   }
 
   const totalGames = matches.length;
   const totalWins = matches.filter(m => m.result === 'win').length;
   const totalLosses = matches.filter(m => m.result === 'loss').length;
-  // const totalDraws = matches.filter(m => m.result === 'draw').length; // Not used in overall WR display
-  const gamesForWinRate = totalWins + totalLosses; // Denominator for win rate
+  const gamesForWinRate = totalWins + totalLosses;
   const overallWinRate = calculateWinRate(totalWins, gamesForWinRate);
 
   const firstTurnMatches = matches.filter(m => m.turn === 'first');
@@ -48,6 +47,7 @@ export function UserStatsDisplay({ matches, archetypes, gameClassMapping }: User
 
   const statsByArchetype: StatItem[] = archetypes
     .map(arch => {
+      if (arch.isDefault && arch.id === 'unknown') return null; // Exclude 'unknown' from this specific display
       const gamesWithArchetype = matches.filter(m => m.userArchetypeId === arch.id);
       if (gamesWithArchetype.length === 0) return null;
       const winsWithArchetype = gamesWithArchetype.filter(m => m.result === 'win').length;
@@ -56,7 +56,7 @@ export function UserStatsDisplay({ matches, archetypes, gameClassMapping }: User
       const wr = calculateWinRate(winsWithArchetype, gamesPlayedForWR);
       const Icon = CLASS_ICONS[arch.gameClass] || GENERIC_ARCHETYPE_ICON;
       return {
-        label: arch.name,
+        label: formatArchetypeNameWithSuffix(arch),
         value: `${wr}% WR (${winsWithArchetype}/${gamesPlayedForWR}) (${gamesWithArchetype.length}戦)`,
         percentage: wr,
         icon: <Icon className="h-5 w-5 mr-2 text-muted-foreground" />
@@ -66,7 +66,7 @@ export function UserStatsDisplay({ matches, archetypes, gameClassMapping }: User
 
   const statsByClass: StatItem[] = (Object.keys(CLASS_ICONS) as GameClass[]).map(gc => {
     const gameClassKey = gc as GameClass;
-    const archetypesInClass = archetypes.filter(a => a.gameClass === gameClassKey);
+    // const archetypesInClass = archetypes.filter(a => a.gameClass === gameClassKey); // Not directly used
     const gamesWithClass = matches.filter(m => {
       const userArch = archetypes.find(a => a.id === m.userArchetypeId);
       return userArch && userArch.gameClass === gameClassKey;

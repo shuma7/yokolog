@@ -4,7 +4,7 @@
 import type { MatchData, Archetype, GameClass, GameClassNameMap } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON } from "@/lib/game-data";
+import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON, formatArchetypeNameWithSuffix } from "@/lib/game-data";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AggregatedStatsDisplayProps {
@@ -21,8 +21,8 @@ interface TurnStats {
 
 interface ArchetypeAggregatedStats {
   archetypeId: string;
-  archetypeName: string;
-  archetypeAbbreviation: string;
+  archetypeName: string; // This will be the base name, suffix applied on display
+  // archetypeAbbreviation: string; // No longer needed for display
   archetypeGameClass: GameClass;
   firstTurnStats: TurnStats;
   secondTurnStats: TurnStats;
@@ -36,8 +36,6 @@ interface TotalAggregatedStats {
 function calculateStats(filteredMatches: MatchData[]): TurnStats {
   const wins = filteredMatches.filter(m => m.result === 'win').length;
   const losses = filteredMatches.filter(m => m.result === 'loss').length;
-  // Draws are counted in total matches for WR denominator if we consider total games played
-  // For win rate based on win/(win+loss), we use wins + losses for denominator
   const gamesForWinRate = wins + losses;
   return {
     matches: filteredMatches.length,
@@ -60,19 +58,19 @@ export function AggregatedStatsDisplay({ matches, archetypes, gameClassMapping }
     .filter(arch => !arch.isDefault || arch.id === 'unknown') // Include user-added and 'unknown'
     .map(arch => {
       const userMatchesWithArchetype = matches.filter(m => m.userArchetypeId === arch.id);
-      if (userMatchesWithArchetype.length === 0 && arch.id !== 'unknown') return null; // Only show if games played, unless it's 'unknown'
+      if (userMatchesWithArchetype.length === 0 && arch.id !== 'unknown') return null;
 
       return {
         archetypeId: arch.id,
-        archetypeName: arch.name,
-        archetypeAbbreviation: arch.abbreviation,
+        archetypeName: arch.name, // Store base name
+        // archetypeAbbreviation: arch.abbreviation, // Not needed for display
         archetypeGameClass: arch.gameClass,
         firstTurnStats: calculateStats(userMatchesWithArchetype.filter(m => m.turn === 'first')),
         secondTurnStats: calculateStats(userMatchesWithArchetype.filter(m => m.turn === 'second')),
       };
     })
     .filter(Boolean) as ArchetypeAggregatedStats[];
-  
+
   // Sort archetypes by class then name for consistent display
   archetypeStats.sort((a, b) => {
     const classA = gameClassMapping[a.archetypeGameClass] || a.archetypeGameClass;
@@ -133,14 +131,16 @@ export function AggregatedStatsDisplay({ matches, archetypes, gameClassMapping }
           <ScrollArea className={archetypeStats.length > 5 ? "h-[500px]" : ""}> {/* Add scroll if many archetypes */}
             <div className="space-y-4">
               {archetypeStats.map(stat => {
-                 const ArchetypeIcon = stat.archetypeId === 'unknown' 
-                    ? UNKNOWN_ARCHETYPE_ICON 
+                 const ArchetypeIcon = stat.archetypeId === 'unknown'
+                    ? UNKNOWN_ARCHETYPE_ICON
                     : CLASS_ICONS[stat.archetypeGameClass] || GENERIC_ARCHETYPE_ICON;
                 return (
                 <div key={stat.archetypeId} className="rounded-md border p-4">
                   <h3 className="text-md font-semibold mb-2 flex items-center gap-2">
                     <ArchetypeIcon className="h-5 w-5" />
-                    {stat.archetypeName} ({stat.archetypeAbbreviation}) - {gameClassMapping[stat.archetypeGameClass]}
+                    {formatArchetypeNameWithSuffix({name: stat.archetypeName, gameClass: stat.archetypeGameClass})}
+                    {/* Displaying the Japanese class name alongside the suffixed archetype name might be redundant. Removed for now. */}
+                    {/* - {gameClassMapping[stat.archetypeGameClass]} */}
                   </h3>
                   {(stat.firstTurnStats.matches === 0 && stat.secondTurnStats.matches === 0) ? (
                      <p className="text-sm text-muted-foreground">このデッキタイプでの対戦記録はありません。</p>
@@ -169,9 +169,3 @@ export function AggregatedStatsDisplay({ matches, archetypes, gameClassMapping }
     </div>
   );
 }
-
-// Add size prop to Table component for tighter spacing if needed (not standard ShadCN)
-// For now, will use default TableCell/TableHead padding.
-// Table.size = "sm" could be a custom prop if Shadcn Table supported it.
-// Alternatively, apply custom padding classes to TableCell/TableHead in this component.
-// For this implementation, keeping it simple.

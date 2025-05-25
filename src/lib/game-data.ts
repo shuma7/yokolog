@@ -1,6 +1,7 @@
+
 import type { Archetype, GameClass, ClassIconMapping, ArchetypeWithIcon } from '@/types';
 // Ghost and Droplets removed, Moon added for Nightmare
-import { Leaf, Swords, Sparkles, Flame, Moon, ShieldCheck, Cog, HelpCircle, Replace } from 'lucide-react'; 
+import { Leaf, Swords, Sparkles, Flame, Moon, ShieldCheck, Cog, HelpCircle, Replace } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 export const CLASS_ICONS: ClassIconMapping = {
@@ -26,34 +27,52 @@ export const GAME_CLASS_EN_TO_JP: Record<GameClass, string> = {
   Portalcraft: "ネメシス",
 };
 
+export const GAME_CLASS_SUFFIX_MAP: Record<GameClass, string> = {
+  Forestcraft: "E",
+  Swordcraft: "R",
+  Runecraft: "W",
+  Dragoncraft: "D",
+  Nightmare: "Ni",
+  Havencraft: "B",
+  Portalcraft: "Nm",
+};
+
+export const formatArchetypeNameWithSuffix = (archetype: Pick<Archetype, 'name' | 'gameClass'>): string => {
+  if (!archetype || !archetype.name || !archetype.gameClass) {
+    return '不明';
+  }
+  const suffix = GAME_CLASS_SUFFIX_MAP[archetype.gameClass] || '';
+  return `${archetype.name}${suffix}`;
+};
+
 
 export const INITIAL_ARCHETYPES: Archetype[] = [
   // 'unknown' archetype - class can be anything, but Forestcraft is a safe default
-  { id: 'unknown', name: '不明な相手', abbreviation: '不明', gameClass: 'Forestcraft', isDefault: true }, 
+  { id: 'unknown', name: '不明な相手', abbreviation: '不明', gameClass: 'Forestcraft', isDefault: true },
   // エルフ
-  { id: uuidv4(), name: 'コントロールエルフ', abbreviation: 'コンエ', gameClass: 'Forestcraft', isDefault: true },
-  { id: uuidv4(), name: 'アグロエルフ', abbreviation: 'アグエ', gameClass: 'Forestcraft', isDefault: true },
+  { id: uuidv4(), name: 'コントロール', abbreviation: 'コン', gameClass: 'Forestcraft', isDefault: true },
+  { id: uuidv4(), name: 'アグロ', abbreviation: 'アグ', gameClass: 'Forestcraft', isDefault: true },
   // ロイヤル
-  { id: uuidv4(), name: '連携ロイヤル', abbreviation: '連携ロ', gameClass: 'Swordcraft', isDefault: true },
-  { id: uuidv4(), name: '進化ロイヤル', abbreviation: '進化ロ', gameClass: 'Swordcraft', isDefault: true },
+  { id: uuidv4(), name: '連携', abbreviation: '連携', gameClass: 'Swordcraft', isDefault: true },
+  { id: uuidv4(), name: '進化', abbreviation: '進化', gameClass: 'Swordcraft', isDefault: true },
   // ウィッチ
-  { id: uuidv4(), name: 'スペルウィッチ', abbreviation: 'スペウィ', gameClass: 'Runecraft', isDefault: true },
-  { id: uuidv4(), name: '秘術ウィッチ', abbreviation: '秘術ウィ', gameClass: 'Runecraft', isDefault: true },
+  { id: uuidv4(), name: 'スペル', abbreviation: 'スペ', gameClass: 'Runecraft', isDefault: true },
+  { id: uuidv4(), name: '秘術', abbreviation: '秘術', gameClass: 'Runecraft', isDefault: true },
   // ドラゴン
-  { id: uuidv4(), name: 'ランプドラゴン', abbreviation: 'ランプド', gameClass: 'Dragoncraft', isDefault: true },
-  { id: uuidv4(), name: 'バフドラゴン', abbreviation: 'バフド', gameClass: 'Dragoncraft', isDefault: true },
+  { id: uuidv4(), name: 'ランプ', abbreviation: 'ランプ', gameClass: 'Dragoncraft', isDefault: true },
+  { id: uuidv4(), name: 'バフ', abbreviation: 'バフ', gameClass: 'Dragoncraft', isDefault: true },
   // ナイトメア (旧ネクロマンサー)
-  { id: uuidv4(), name: 'ラストワードナイトメア', abbreviation: 'ラスワNi', gameClass: 'Nightmare', isDefault: true }, // Changed class to Nightmare
-  { id: uuidv4(), name: 'ゴーストナイトメア', abbreviation: 'ゴスNi', gameClass: 'Nightmare', isDefault: true }, // Changed class to Nightmare
+  { id: uuidv4(), name: 'ラストワード', abbreviation: 'ラスワ', gameClass: 'Nightmare', isDefault: true }, // Changed class to Nightmare
+  { id: uuidv4(), name: 'ゴースト', abbreviation: 'ゴス', gameClass: 'Nightmare', isDefault: true }, // Changed class to Nightmare
   // ナイトメア (旧ヴァンパイア)
-  { id: uuidv4(), name: '狂乱ナイトメア', abbreviation: '狂乱Ni', gameClass: 'Nightmare', isDefault: true }, // Changed class to Nightmare
-  { id: uuidv4(), name: 'ハンドレスナイトメア', abbreviation: 'ハンNi', gameClass: 'Nightmare', isDefault: true }, // Changed class to Nightmare
+  { id: uuidv4(), name: '狂乱', abbreviation: '狂乱', gameClass: 'Nightmare', isDefault: true }, // Changed class to Nightmare
+  { id: uuidv4(), name: 'ハンドレス', abbreviation: 'ハン', gameClass: 'Nightmare', isDefault: true }, // Changed class to Nightmare
   // ビショップ
-  { id: uuidv4(), name: '回復ビショップ', abbreviation: '回復ビ', gameClass: 'Havencraft', isDefault: true },
-  { id: uuidv4(), name: '守護ビショップ', abbreviation: '守護ビ', gameClass: 'Havencraft', isDefault: true },
+  { id: uuidv4(), name: '回復', abbreviation: '回復', gameClass: 'Havencraft', isDefault: true },
+  { id: uuidv4(), name: '守護', abbreviation: '守護', gameClass: 'Havencraft', isDefault: true },
   // ネメシス
-  { id: uuidv4(), name: 'AFネメシス', abbreviation: 'AFネメ', gameClass: 'Portalcraft', isDefault: true },
-  { id: uuidv4(), name: '機械ネメシス', abbreviation: '機械ネメ', gameClass: 'Portalcraft', isDefault: true },
+  { id: uuidv4(), name: 'AF', abbreviation: 'AF', gameClass: 'Portalcraft', isDefault: true },
+  { id: uuidv4(), name: '機械', abbreviation: '機械', gameClass: 'Portalcraft', isDefault: true },
 ];
 
 export const getArchetypeWithIcon = (archetype: Archetype): ArchetypeWithIcon => {

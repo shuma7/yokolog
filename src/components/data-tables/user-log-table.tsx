@@ -15,7 +15,7 @@ import { Trash2, Edit3 } from "lucide-react";
 import type { MatchData, Archetype, GameClassNameMap } from "@/types";
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON } from "@/lib/game-data";
+import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON, formatArchetypeNameWithSuffix } from "@/lib/game-data";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,7 +41,7 @@ export function UserLogTable({ matches, archetypes, onDeleteMatch, onEditRequest
     return archetypes.find(a => a.id === archetypeId);
   };
 
-  const getResultText = (result: "win" | "loss") => { // Removed "draw"
+  const getResultText = (result: "win" | "loss") => {
     switch (result) {
       case "win": return "勝利";
       case "loss": return "敗北";
@@ -82,13 +82,13 @@ export function UserLogTable({ matches, archetypes, onDeleteMatch, onEditRequest
           {matches.map((match, index) => {
             const userArchetype = getArchetypeDetails(match.userArchetypeId);
             const opponentArchetype = getArchetypeDetails(match.opponentArchetypeId);
-            
-            const UserIcon = userArchetype?.id === 'unknown' 
-              ? UNKNOWN_ARCHETYPE_ICON 
+
+            const UserIcon = userArchetype?.id === 'unknown'
+              ? UNKNOWN_ARCHETYPE_ICON
               : (userArchetype ? CLASS_ICONS[userArchetype.gameClass] || GENERIC_ARCHETYPE_ICON : GENERIC_ARCHETYPE_ICON);
-            
-            const OpponentIcon = opponentArchetype?.id === 'unknown' 
-              ? UNKNOWN_ARCHETYPE_ICON 
+
+            const OpponentIcon = opponentArchetype?.id === 'unknown'
+              ? UNKNOWN_ARCHETYPE_ICON
               : (opponentArchetype ? CLASS_ICONS[opponentArchetype.gameClass] || GENERIC_ARCHETYPE_ICON : GENERIC_ARCHETYPE_ICON);
 
             const matchNumber = totalMatches - index;
@@ -99,18 +99,18 @@ export function UserLogTable({ matches, archetypes, onDeleteMatch, onEditRequest
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <UserIcon className="h-4 w-4 text-muted-foreground" />
-                    {userArchetype ? `${userArchetype.name} (${userArchetype.abbreviation})` : '不明'}
+                    {userArchetype ? formatArchetypeNameWithSuffix(userArchetype) : '不明'}
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <OpponentIcon className="h-4 w-4 text-muted-foreground" />
-                    {opponentArchetype ? `${opponentArchetype.name} (${opponentArchetype.abbreviation})` : '不明'}
+                    {opponentArchetype ? formatArchetypeNameWithSuffix(opponentArchetype) : '不明'}
                   </div>
                 </TableCell>
                 <TableCell>{getTurnText(match.turn)}</TableCell>
                 <TableCell>
-                  <Badge variant={match.result === 'win' ? 'default' : 'destructive'} // Removed 'secondary' for draw
+                  <Badge variant={match.result === 'win' ? 'default' : 'destructive'}
                          className={`capitalize ${match.result === 'win' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}>
                     {getResultText(match.result)}
                   </Badge>
