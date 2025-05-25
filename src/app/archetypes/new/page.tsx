@@ -38,7 +38,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit3, Trash2 } from "lucide-react";
-import { CLASS_ICONS, formatArchetypeNameWithSuffix, GAME_CLASS_EN_TO_JP } from "@/lib/game-data";
+import { CLASS_ICONS, formatArchetypeNameWithSuffix, GAME_CLASS_EN_TO_JP, UNKNOWN_ARCHETYPE_ICON } from "@/lib/game-data";
 
 export default function ManageArchetypesPage() {
   const { archetypes, addArchetype, updateArchetype, deleteArchetype } = useArchetypeManager();
@@ -109,11 +109,11 @@ export default function ManageArchetypesPage() {
       if (currentArchetype && currentArchetype.id) {
         // Editing existing archetype
         const updated: Archetype = {
-            ...currentArchetype, // Preserves ID and isDefault (if any)
+            ...currentArchetype, 
             name: data.name,
             abbreviation: data.abbreviation,
             gameClass: data.gameClass,
-        } as Archetype; // Type assertion, ID is present
+        } as Archetype; 
         updateArchetype(updated);
         toast({
           title: "更新完了",
@@ -143,12 +143,8 @@ export default function ManageArchetypesPage() {
     const grouped: Record<GameClass, Archetype[]> = {} as Record<GameClass, Archetype[]>;
     ALL_GAME_CLASSES.forEach(gc => {
       grouped[gc.value] = archetypes
-        .filter(arch => arch.gameClass === gc.value)
-        .sort((a, b) => {
-          if (a.id === 'unknown') return -1; // Keep 'unknown' at the top if it's in this class (it shouldn't be usually)
-          if (b.id === 'unknown') return 1;
-          return a.name.localeCompare(b.name, 'ja');
-        });
+        .filter(arch => arch.id !== 'unknown' && arch.gameClass === gc.value) // Exclude 'unknown' from class-specific lists
+        .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
     });
     return grouped;
   }, [archetypes]);
@@ -177,25 +173,10 @@ export default function ManageArchetypesPage() {
         <div className="container mx-auto">
           {ALL_GAME_CLASSES.map((gameClassDetail) => {
             const classArchetypes = archetypesByClass[gameClassDetail.value];
-            // Ensure 'unknown' archetype is handled if it's part of general archetypes list and not a specific class
-            const unknownArchetype = archetypes.find(a => a.id === 'unknown');
-            let displayArchetypes = classArchetypes;
-
-            if (gameClassDetail.value === archetypes.find(a => a.id === 'unknown')?.gameClass && unknownArchetype && !classArchetypes?.find(a=>a.id === 'unknown')) {
-                // Special handling if 'unknown' is filtered into a class but not explicitly there
-            }
-
-
-            if (!displayArchetypes || displayArchetypes.length === 0) {
-              // If 'unknown' belongs to this class conceptually but isn't in the filtered list yet, or if it's the only one.
-              // This logic might need refinement based on how 'unknown' is classified.
-              // For now, we assume 'unknown' might appear under its assigned class if it has one.
-              // Or it might be listed separately. Let's assume it appears under its gameClass.
-              if (unknownArchetype && unknownArchetype.gameClass === gameClassDetail.value && (!displayArchetypes || displayArchetypes.length === 0)) {
-                 // displayArchetypes = [unknownArchetype]; // Only if it's truly the only one for this class
-              } else if (!displayArchetypes || displayArchetypes.length === 0) {
-                return null;
-              }
+            if (!classArchetypes || classArchetypes.length === 0) {
+              // If this class has no user-defined archetypes, don't render the section for it.
+              // 'unknown' is handled separately.
+              return null; 
             }
             const ClassIcon = CLASS_ICONS[gameClassDetail.value];
 
@@ -215,7 +196,7 @@ export default function ManageArchetypesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {displayArchetypes.map((archetype) => (
+                      {classArchetypes.map((archetype) => (
                         <TableRow key={archetype.id}>
                           <TableCell className="font-medium">
                             {formatArchetypeNameWithSuffix(archetype)}
@@ -229,47 +210,41 @@ export default function ManageArchetypesPage() {
                               size="icon"
                               onClick={() => handleEdit(archetype)}
                               className="mr-1 text-primary hover:text-primary/80"
-                              disabled={archetype.id === 'unknown'} // ID 'unknown' itself cannot be changed, but its properties can be. Here, disabling edit for 'unknown' for simplicity but form should handle it.
                             >
                               <Edit3 className="h-4 w-4" />
                             </Button>
-                            {archetype.id !== 'unknown' && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>本当によろしいですか？</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      この操作は元に戻せません。
-                                      「{getJapaneseClassName(archetype.gameClass)}」クラスのデッキタイプ
-                                      「{formatArchetypeNameWithSuffix(archetype)}」を完全に削除します。
-                                      関連する対戦記録のデッキタイプは「不明」として扱われるようになります。
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDelete(archetype)}
-                                      className="bg-destructive hover:bg-destructive/90"
-                                    >
-                                      削除
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            )}
-                             {archetype.id === 'unknown' && (
-                                 <span className="text-xs text-muted-foreground italic mr-2">削除不可</span>
-                            )}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>本当によろしいですか？</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    この操作は元に戻せません。
+                                    「{getJapaneseClassName(archetype.gameClass)}」クラスのデッキタイプ
+                                    「{formatArchetypeNameWithSuffix(archetype)}」を完全に削除します。
+                                    関連する対戦記録のデッキタイプは「不明」として扱われるようになります。
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(archetype)}
+                                    className="bg-destructive hover:bg-destructive/90"
+                                  >
+                                    削除
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
-                    {displayArchetypes.length === 0 && (
+                    {classArchetypes.length === 0 && ( // Should not be reached due to outer check, but good for robustness
                         <TableCaption>このクラスのデッキタイプはまだ登録されていません。</TableCaption>
                     )}
                   </Table>
@@ -277,15 +252,16 @@ export default function ManageArchetypesPage() {
               </section>
             );
           })}
-           {/* Special section for the 'unknown' archetype if it's not naturally listed or to ensure it's always manageable */}
+          
+           {/* Special section for the 'unknown' archetype */}
            {(() => {
              const unknownArchetype = archetypes.find(a => a.id === 'unknown');
-             if (unknownArchetype && !ALL_GAME_CLASSES.some(gc => gc.value === unknownArchetype.gameClass && archetypesByClass[gc.value]?.some(a => a.id === 'unknown'))) {
-               const ClassIcon = CLASS_ICONS[unknownArchetype.gameClass];
+             if (unknownArchetype) {
+               const UnknownClassIcon = CLASS_ICONS[unknownArchetype.gameClass] || UNKNOWN_ARCHETYPE_ICON;
                return (
-                 <section key="unknown-section" className="mb-8">
+                 <section key="unknown-section" className="mb-8 pt-4 border-t">
                    <h2 className="text-xl font-semibold mb-3 flex items-center">
-                     {ClassIcon && <ClassIcon className="mr-2 h-6 w-6 text-primary" />}
+                     <UnknownClassIcon className="mr-2 h-6 w-6 text-muted-foreground" />
                      その他 (不明な相手)
                    </h2>
                    <div className="rounded-md border">
@@ -336,7 +312,7 @@ export default function ManageArchetypesPage() {
 
       <Dialog open={isDialogOpen} onOpenChange={(open) => {
         if (!open) {
-          setCurrentArchetype(null); // Reset when dialog closes
+          setCurrentArchetype(null); 
         }
         setIsDialogOpen(open);
       }}>
@@ -359,6 +335,4 @@ export default function ManageArchetypesPage() {
     </div>
   );
 }
-    
-
     
