@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -35,6 +36,9 @@ interface MatchupStats {
   total: number;
   winRate: number;
 }
+
+const ALL_USER_ARCHETYPES_VALUE = "all-user-archetypes";
+const ALL_OPPONENT_ARCHETYPES_VALUE = "all-opponent-archetypes";
 
 export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }: MatchupTableDisplayProps) {
   const [selectedUserArchetypeIds, setSelectedUserArchetypeIds] = useState<string[]>([]);
@@ -135,15 +139,15 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
             <Select 
-              onValueChange={(value) => setSelectedUserArchetypeIds(value ? [value] : [])}
-              value={selectedUserArchetypeIds[0] || ""}
+              onValueChange={(value) => setSelectedUserArchetypeIds(value === ALL_USER_ARCHETYPES_VALUE ? [] : (value ? [value] : []))}
+              value={selectedUserArchetypeIds.length > 0 ? selectedUserArchetypeIds[0] : ALL_USER_ARCHETYPES_VALUE}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="自分のデッキタイプで絞り込み (全て)" />
               </SelectTrigger>
               <SelectContent>
                 <ScrollArea className="h-72">
-                  <SelectItem value="">全ての自分のデッキタイプ</SelectItem>
+                  <SelectItem value={ALL_USER_ARCHETYPES_VALUE}>全ての自分のデッキタイプ</SelectItem>
                   {userArchetypesForFilter.map(renderArchetypeOption)}
                 </ScrollArea>
               </SelectContent>
@@ -151,15 +155,15 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
           </div>
           <div>
             <Select
-              onValueChange={(value) => setSelectedOpponentArchetypeIds(value ? [value] : [])}
-              value={selectedOpponentArchetypeIds[0] || ""}
+              onValueChange={(value) => setSelectedOpponentArchetypeIds(value === ALL_OPPONENT_ARCHETYPES_VALUE ? [] : (value ? [value] : []))}
+              value={selectedOpponentArchetypeIds.length > 0 ? selectedOpponentArchetypeIds[0] : ALL_OPPONENT_ARCHETYPES_VALUE}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="相手のデッキタイプで絞り込み (全て)" />
               </SelectTrigger>
               <SelectContent>
                 <ScrollArea className="h-72">
-                  <SelectItem value="">全ての相手デッキタイプ</SelectItem>
+                  <SelectItem value={ALL_OPPONENT_ARCHETYPES_VALUE}>全ての相手デッキタイプ</SelectItem>
                   {opponentArchetypesForFilter.map(renderArchetypeOption)}
                 </ScrollArea>
               </SelectContent>
