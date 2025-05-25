@@ -1,8 +1,9 @@
 
-import type { Archetype, GameClass, ClassIconMapping, ArchetypeWithIcon } from '@/types';
+import type { Archetype, GameClass, ClassIconMapping, ArchetypeWithIcon, GameClassDetail } from '@/types';
 // Ghost and Droplets removed, Moon added for Nightmare
 import { Leaf, Swords, Sparkles, Flame, Moon, ShieldCheck, Cog, HelpCircle, Replace } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import { ALL_GAME_CLASSES } from '@/types'; // Added import
 
 export const CLASS_ICONS: ClassIconMapping = {
   Forestcraft: Leaf,
@@ -37,25 +38,33 @@ export const GAME_CLASS_SUFFIX_MAP: Record<GameClass, string> = {
   Portalcraft: "Nm",
 };
 
-export const formatArchetypeNameWithSuffix = (archetype: Pick<Archetype, 'name' | 'gameClass'>): string => {
+export const formatArchetypeNameWithSuffix = (archetype: Pick<Archetype, 'id' | 'name' | 'gameClass'>): string => {
   if (!archetype || !archetype.name || !archetype.gameClass) {
     return '不明';
   }
-  // Ensure the name itself is clean before appending suffix, though primary cleaning is in the hook for existing data.
+
+  // If it's the special 'unknown' archetype, return its name directly without a suffix.
+  if (archetype.id === 'unknown') {
+    return archetype.name; // This is "不明な相手"
+  }
+
   let cleanName = archetype.name;
+  // Remove Japanese class names if they are part of the archetype name
+  // This cleaning is more robustly handled in useArchetypeManager for existing data,
+  // but can be a fallback here for newly formatted names.
   Object.values(GAME_CLASS_EN_TO_JP).forEach(jpClass => {
-    if (cleanName.endsWith(jpClass)) { // Only remove if it's a suffix
-      cleanName = cleanName.substring(0, cleanName.length - jpClass.length).trim();
+    if (cleanName.includes(jpClass)) {
+      cleanName = cleanName.replace(new RegExp(jpClass, 'g'), '').trim();
     }
   });
   
   const suffix = GAME_CLASS_SUFFIX_MAP[archetype.gameClass] || '';
-  return `${cleanName}${suffix}`;
+  return `${cleanName}${suffix}`.trim(); // Ensure no leading/trailing spaces if cleanName becomes empty
 };
 
 
 export const INITIAL_ARCHETYPES: Archetype[] = [
-  // 'unknown' archetype
+  // 'unknown' archetype - its name will be "不明な相手" and will not get a suffix due to the above function.
   { id: 'unknown', name: '不明な相手', abbreviation: '不明', gameClass: 'Forestcraft', isDefault: true },
   // エルフ
   { id: uuidv4(), name: 'コントロール', abbreviation: 'コン', gameClass: 'Forestcraft', isDefault: true },
@@ -96,4 +105,10 @@ export const getArchetypesWithIcons = (archetypes: Archetype[]): ArchetypeWithIc
 
 export const getIconForClass = (gameClass: GameClass): React.ElementType => {
   return CLASS_ICONS[gameClass] || HelpCircle;
+};
+
+// Helper to get Japanese class name from GameClassDetail array
+export const getJapaneseClassNameFromValue = (gameClassValue: GameClass): string => {
+    const classDetail = ALL_GAME_CLASSES.find(gc => gc.value === gameClassValue);
+    return classDetail ? classDetail.label : gameClassValue;
 };
