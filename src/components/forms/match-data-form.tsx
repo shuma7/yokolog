@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,9 +23,10 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import type { Archetype, MatchData, GameClass, GameClassNameMap } from "@/types";
-import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON } from '@/lib/game-data';
+import type { Archetype, MatchData, GameClassNameMap } from "@/types";
+import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON } from '@/lib/game-data';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useEffect } from "react";
 
 const matchDataFormSchema = z.object({
   userArchetypeId: z.string().min(1, "自分のデッキタイプを選択してください。"),
@@ -56,7 +58,22 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
     },
   });
 
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        userArchetypeId: initialData.userArchetypeId || "",
+        opponentArchetypeId: initialData.opponentArchetypeId || "",
+        turn: initialData.turn || "unknown",
+        result: initialData.result || undefined,
+        notes: initialData.notes || "",
+      });
+    }
+  }, [initialData, form]);
+
+
   const sortedArchetypes = [...archetypes].sort((a, b) => {
+    if (a.id === 'unknown') return -1; // Ensure 'Unknown' is always first or identifiable
+    if (b.id === 'unknown') return 1;
     const classA = gameClassMapping[a.gameClass] || a.gameClass;
     const classB = gameClassMapping[b.gameClass] || b.gameClass;
     if (classA === classB) {
@@ -65,10 +82,12 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
     return classA.localeCompare(classB, 'ja');
   });
   
-  const currentSubmitText = initialData?.id ? "対戦を更新" : submitButtonText;
+  const currentSubmitText = initialData?.id ? submitButtonText : "対戦を記録"; // Use submitButtonText if editing
 
   const renderArchetypeSelectItem = (archetype: Archetype) => {
-    const Icon = CLASS_ICONS[archetype.gameClass] || GENERIC_ARCHETYPE_ICON;
+    const Icon = archetype.id === 'unknown' 
+        ? UNKNOWN_ARCHETYPE_ICON 
+        : CLASS_ICONS[archetype.gameClass] || GENERIC_ARCHETYPE_ICON;
     const displayClass = gameClassMapping[archetype.gameClass] || archetype.gameClass;
     return (
       <SelectItem key={archetype.id} value={archetype.id}>
@@ -83,7 +102,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
 
   function handleSubmit(data: MatchFormValues) {
     onSubmit(data);
-     if (!initialData?.id) { // Only reset if it's a new match form
+     if (!initialData?.id) { 
         form.reset({ 
             userArchetypeId: "",
             opponentArchetypeId: "",
@@ -94,15 +113,17 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
     }
   }
 
+  const cardTitle = initialData?.id ? "対戦編集" : "新規対戦を記録";
+  const cardDescription = initialData?.id 
+    ? "この対戦の詳細を更新します。"
+    : "最近の対戦の詳細を記録します。";
+
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>{currentSubmitText === "対戦を記録" ? "新規対戦を記録" : "対戦編集"}</CardTitle>
-        <CardDescription>
-          {currentSubmitText === "対戦を記録" 
-            ? "最近の対戦の詳細を記録します。"
-            : "この対戦の詳細を更新します。"}
-        </CardDescription>
+        <CardTitle>{cardTitle}</CardTitle>
+        <CardDescription>{cardDescription}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -114,7 +135,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>自分のデッキタイプ</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="自分のデッキタイプを選択" />
@@ -136,7 +157,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>相手のデッキタイプ</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="相手のデッキタイプを選択" />
@@ -164,7 +185,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                         className="flex space-x-4"
                       >
                         <FormItem className="flex items-center space-x-2 space-y-0">
@@ -200,7 +221,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                         className="flex space-x-4"
                       >
                         <FormItem className="flex items-center space-x-2 space-y-0">
@@ -240,6 +261,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                       placeholder="対戦に関する特記事項など..."
                       className="resize-none"
                       {...field}
+                      value={field.value || ""}
                     />
                   </FormControl>
                   <FormMessage />

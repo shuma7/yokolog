@@ -1,8 +1,6 @@
+
 "use client"; 
 
-// import { useEffect } from 'react'; // Removed useEffect
-// import { useRouter } from 'next/navigation'; // Removed useRouter
-// import { useUsername } from '@/hooks/use-username'; // Removed useUsername
 import { MainHeader } from '@/components/layout/main-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,15 +8,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 export default function HomePage() {
-  // const router = useRouter(); // Removed
-  // const { username } = useUsername(); // Removed
-
-  // useEffect(() => { // Removed
-  //   if (username) {
-  //     router.replace('/log');
-  //   }
-  // }, [username, router]);
-
   return (
     <div className="flex flex-1 flex-col">
       <MainHeader title="yokologへようこそ" />
@@ -36,12 +25,9 @@ export default function HomePage() {
               <p className="text-md">
                 対戦記録と戦績分析を始めましょう。
               </p>
-              {/* <p className="text-sm text-muted-foreground">
-                （リダイレクトされず、ユーザー名を設定済みの場合、ページを更新するかサイドバーから移動してください。）
-              </p> */}
               <div className="flex justify-center gap-4">
                 <Button asChild>
-                  <Link href="/log">マイ対戦記録へ</Link>
+                  <Link href="/log">個人ログへ</Link>
                 </Button>
                  <Button variant="outline" asChild>
                   <Link href="/matches/new">新規対戦を追加</Link>

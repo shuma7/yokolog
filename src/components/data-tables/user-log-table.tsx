@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -10,11 +11,11 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react"; // Edit3 removed as per previous state
-import type { MatchData, Archetype, GameClass, GameClassNameMap } from "@/types";
+import { Trash2, Edit3 } from "lucide-react";
+import type { MatchData, Archetype, GameClassNameMap } from "@/types";
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON } from "@/lib/game-data";
+import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON } from "@/lib/game-data";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,14 +29,15 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface UserLogTableProps {
-  matches: MatchData[];
+  matches: MatchData[]; // Expected to be sorted newest first for display
   archetypes: Archetype[];
   onDeleteMatch: (matchId: string) => void;
+  onEditRequest: (match: MatchData) => void;
   gameClassMapping: GameClassNameMap;
 }
 
-export function UserLogTable({ matches, archetypes, onDeleteMatch, gameClassMapping }: UserLogTableProps) {
-  const getArchetypeDetails = (archetypeId: string) : Archetype | undefined => {
+export function UserLogTable({ matches, archetypes, onDeleteMatch, onEditRequest, gameClassMapping }: UserLogTableProps) {
+  const getArchetypeDetails = (archetypeId: string): Archetype | undefined => {
     return archetypes.find(a => a.id === archetypeId);
   };
 
@@ -61,30 +63,42 @@ export function UserLogTable({ matches, archetypes, onDeleteMatch, gameClassMapp
     return <p className="text-center text-muted-foreground py-8">まだ対戦記録がありません。いくつか追加してみましょう！</p>;
   }
 
+  const totalMatches = matches.length;
+
   return (
-    <div className="rounded-lg border overflow-hidden">
+    <div className="rounded-lg border overflow-x-auto relative max-h-[calc(100vh-250px)]"> {/* Adjust max-h as needed */}
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>日時</TableHead>
-            <TableHead>自分のデッキタイプ</TableHead>
-            <TableHead>相手のデッキタイプ</TableHead>
-            <TableHead>ターン</TableHead>
-            <TableHead>結果</TableHead>
-            <TableHead>メモ</TableHead>
-            <TableHead className="text-right">操作</TableHead>
+            <TableHead className="sticky top-0 bg-card z-10 w-[80px]">番号</TableHead>
+            <TableHead className="sticky top-0 bg-card z-10 min-w-[180px]">自分のデッキタイプ</TableHead>
+            <TableHead className="sticky top-0 bg-card z-10 min-w-[180px]">相手のデッキタイプ</TableHead>
+            <TableHead className="sticky top-0 bg-card z-10 w-[80px]">先後</TableHead>
+            <TableHead className="sticky top-0 bg-card z-10 w-[80px]">勝敗</TableHead>
+            <TableHead className="sticky top-0 bg-card z-10 min-w-[200px]">メモ</TableHead>
+            <TableHead className="sticky top-0 bg-card z-10 text-right w-[120px]">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {matches.map((match) => {
+          {matches.map((match, index) => {
             const userArchetype = getArchetypeDetails(match.userArchetypeId);
             const opponentArchetype = getArchetypeDetails(match.opponentArchetypeId);
-            const UserIcon = userArchetype ? CLASS_ICONS[userArchetype.gameClass] || GENERIC_ARCHETYPE_ICON : GENERIC_ARCHETYPE_ICON;
-            const OpponentIcon = opponentArchetype ? CLASS_ICONS[opponentArchetype.gameClass] || GENERIC_ARCHETYPE_ICON : GENERIC_ARCHETYPE_ICON;
+            
+            const UserIcon = userArchetype?.id === 'unknown' 
+              ? UNKNOWN_ARCHETYPE_ICON 
+              : (userArchetype ? CLASS_ICONS[userArchetype.gameClass] || GENERIC_ARCHETYPE_ICON : GENERIC_ARCHETYPE_ICON);
+            
+            const OpponentIcon = opponentArchetype?.id === 'unknown' 
+              ? UNKNOWN_ARCHETYPE_ICON 
+              : (opponentArchetype ? CLASS_ICONS[opponentArchetype.gameClass] || GENERIC_ARCHETYPE_ICON : GENERIC_ARCHETYPE_ICON);
+
+            // Numbering: Oldest is 1, newest is totalMatches. Since 'matches' is sorted newest first,
+            // the number for match at 'index' is 'totalMatches - index'.
+            const matchNumber = totalMatches - index;
 
             return (
-              <TableRow key={match.id}>
-                <TableCell>{format(new Date(match.timestamp), 'yyyy年M月d日 HH:mm', { locale: ja })}</TableCell>
+              <TableRow key={match.id} className="hover:bg-muted/50">
+                <TableCell>{matchNumber}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <UserIcon className="h-4 w-4 text-muted-foreground" />
@@ -99,13 +113,16 @@ export function UserLogTable({ matches, archetypes, onDeleteMatch, gameClassMapp
                 </TableCell>
                 <TableCell>{getTurnText(match.turn)}</TableCell>
                 <TableCell>
-                  <Badge variant={match.result === 'win' ? 'default' : match.result === 'loss' ? 'destructive' : 'secondary'} 
+                  <Badge variant={match.result === 'win' ? 'default' : match.result === 'loss' ? 'destructive' : 'secondary'}
                          className={`capitalize ${match.result === 'win' ? 'bg-green-600 hover:bg-green-700 text-white' : match.result === 'loss' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`}>
                     {getResultText(match.result)}
                   </Badge>
                 </TableCell>
-                <TableCell className="max-w-xs truncate" title={match.notes}>{match.notes || '-'}</TableCell>
+                <TableCell className="max-w-[200px] truncate" title={match.notes}>{match.notes || '-'}</TableCell>
                 <TableCell className="text-right">
+                  <Button variant="ghost" size="icon" className="text-primary hover:text-primary/80 mr-1" onClick={() => onEditRequest(match)}>
+                    <Edit3 className="h-4 w-4" />
+                  </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80">
