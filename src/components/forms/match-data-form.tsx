@@ -33,7 +33,7 @@ const matchDataFormSchema = z.object({
   userArchetypeId: z.string().min(1, "自分のデッキタイプを選択してください。"),
   opponentArchetypeId: z.string().min(1, "相手のデッキタイプを選択してください。"),
   turn: z.enum(["first", "second", "unknown"], { required_error: "先攻/後攻を選択してください。" }),
-  result: z.enum(["win", "loss"], { required_error: "対戦結果を選択してください。" }), // Removed "draw"
+  result: z.enum(["win", "loss"], { required_error: "対戦結果を選択してください。" }),
   notes: z.string().max(500, "メモは500文字以内で入力してください。").optional(),
 });
 
@@ -60,7 +60,7 @@ const getArchetypeDisplayInfo = (archetypeId: string | undefined, archetypes: Ar
   if (!archetypeId) return null;
   const archetype = archetypes.find(a => a.id === archetypeId);
   if (!archetype) return { name: "不明なデッキタイプ" };
-  return { name: archetype.name }; // Display only name, no abbreviation
+  return { name: archetype.name };
 };
 
 const getTurnDisplay = (turn: "first" | "second" | "unknown" | undefined) => {
@@ -212,6 +212,36 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
       }
     });
   }
+
+  const handleBack = () => {
+    if (initialData?.id) return; // Back button is not for edit mode
+
+    let newStep: UI_STEP = currentUiStep;
+
+    switch (currentUiStep) {
+      case 'notes':
+        newStep = 'result';
+        break;
+      case 'result':
+        newStep = 'turn';
+        break;
+      case 'turn':
+        newStep = 'opponentArchetype';
+        break;
+      case 'opponentArchetype':
+        newStep = 'opponentClass';
+        break;
+      case 'opponentClass':
+        newStep = 'userArchetype';
+        break;
+      case 'userArchetype':
+        newStep = 'userClass';
+        break;
+    }
+    if (newStep !== currentUiStep) {
+      setCurrentUiStep(newStep);
+    }
+  };
 
   const renderArchetypeSelectItem = (archetype: Archetype) => {
     const Icon = archetype.id === 'unknown'
@@ -425,7 +455,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                   <FormItem className="space-y-3">
                     <FormLabel className="text-base font-semibold">対戦結果を選んでください</FormLabel>
                     <FormControl>
-                      <div className="grid grid-cols-2 gap-3 sm:gap-4"> {/* Changed to grid-cols-2 */}
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4">
                         <Button
                           type="button"
                           variant={field.value === 'win' ? 'default' : 'outline'}
@@ -457,34 +487,56 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
             )}
 
             {showNotesAndSubmit && (
-              <>
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>メモ (任意)</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          ref={notesRef}
-                          placeholder="対戦に関する特記事項など..."
-                          className="resize-none"
-                          {...field}
-                          value={field.value || ""}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full text-lg py-3">
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>メモ (任意)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        ref={notesRef}
+                        placeholder="対戦に関する特記事項など..."
+                        className="resize-none"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Action Buttons Area */}
+            <div className={cn(
+              "flex flex-col-reverse sm:flex-row gap-3 pt-4",
+              (currentUiStep !== 'userClass' && !initialData?.id && showNotesAndSubmit) ? 'sm:justify-between' : 'sm:justify-end'
+            )}>
+              {(currentUiStep !== 'userClass' && !initialData?.id) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleBack}
+                  className="w-full sm:w-auto"
+                >
+                  戻る
+                </Button>
+              )}
+              {showNotesAndSubmit && (
+                <Button
+                  type="submit"
+                  className="w-full sm:w-auto text-lg py-3"
+                >
                   {initialData?.id ? (submitButtonText || "対戦情報を更新") : "NEXT!"}
                 </Button>
-              </>
-            )}
+              )}
+            </div>
           </form>
         </Form>
       </CardContent>
     </Card>
   );
 }
+
+    
