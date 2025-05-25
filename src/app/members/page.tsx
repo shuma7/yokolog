@@ -40,13 +40,12 @@ export default function MembersPage() {
         const key = localStorage.key(i);
         if (key && key.startsWith('yokolog_match_logs_')) {
           const user = key.replace('yokolog_match_logs_', '');
-          if (user) { // Ensure user is not an empty string
+          if (user) { 
             users.push(user);
             try {
               const item = localStorage.getItem(key);
               const userMatches = item ? JSON.parse(item) : [];
               if (Array.isArray(userMatches)) {
-                // Ensure all matches have a userId, default to discovered user if missing (for older data)
                 allMatches.push(...userMatches.map(m => ({...m, userId: m.userId || user })));
               }
             } catch (e) {
@@ -56,13 +55,14 @@ export default function MembersPage() {
         }
       }
     }
-    setDiscoveredUsers(users.sort());
+    const sortedUsers = users.sort((a, b) => a.localeCompare(b));
+    setDiscoveredUsers(sortedUsers);
     setAllUsersMatches(allMatches);
 
-    if (currentUsername && users.includes(currentUsername)) {
+    if (currentUsername && sortedUsers.includes(currentUsername)) {
       setSelectedUsername(currentUsername);
-    } else if (users.length > 0) {
-      setSelectedUsername(users[0]);
+    } else if (sortedUsers.length > 0) {
+      setSelectedUsername(sortedUsers[0]);
     }
   }, [currentUsername]);
 
@@ -70,7 +70,6 @@ export default function MembersPage() {
     if (selectedUsername && typeof window !== 'undefined') {
       const item = localStorage.getItem(`yokolog_match_logs_${selectedUsername}`);
       const matchesRaw = item ? JSON.parse(item) : [];
-      // Ensure all matches have a userId, default to selectedUsername if missing
       const matchesWithUserId = matchesRaw.map((m: MatchData) => ({...m, userId: m.userId || selectedUsername }));
       const sortedMatches = [...matchesWithUserId].sort((a,b) => b.timestamp - a.timestamp);
       setSelectedUserMatches(sortedMatches);
@@ -110,7 +109,7 @@ export default function MembersPage() {
                 <CardHeader>
                     <CardTitle>ユーザー別 勝利数ランキング</CardTitle>
                     <CardDescription>
-                        各クラスおよびアーキタイプごとの、全ユーザーの勝利数ランキングです。
+                        各クラスおよびデッキタイプごとの、全ユーザーの勝利数ランキングです。
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -149,20 +148,23 @@ export default function MembersPage() {
                  </CardContent>
               </Card>
               
-              {selectedUsername ? (
-                <UserLogTable
-                  matches={selectedUserMatches}
-                  archetypes={archetypes}
-                  onDeleteMatch={handleDeleteMatch}
-                  onEditRequest={handleEditRequest}
-                  gameClassMapping={gameClassMapping}
-                  isReadOnly={selectedUsername !== currentUsername}
-                />
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  {discoveredUsers.length > 0 ? "メンバーを選択してください。" : "表示できるメンバーログがありません。"}
-                </p>
-              )}
+              <div className="max-h-[calc(100vh-330px)] overflow-y-auto"> {/* Adjusted max-h here, considering elements above */}
+                {selectedUsername ? (
+                  <UserLogTable
+                    matches={selectedUserMatches}
+                    archetypes={archetypes}
+                    onDeleteMatch={handleDeleteMatch}
+                    onEditRequest={handleEditRequest}
+                    gameClassMapping={gameClassMapping}
+                    isReadOnly={selectedUsername !== currentUsername}
+                    isMinimal={true} // Apply minimal styling for member logs
+                  />
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    {discoveredUsers.length > 0 ? "メンバーを選択してください。" : "表示できるメンバーログがありません。"}
+                  </p>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         </div>

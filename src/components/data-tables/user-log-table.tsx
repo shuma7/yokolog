@@ -11,10 +11,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit3, EyeOff } from "lucide-react"; // Added EyeOff for read-only
+import { Trash2, Edit3, EyeOff } from "lucide-react";
 import type { MatchData, Archetype, GameClassNameMap } from "@/types";
-// import { format } from 'date-fns'; // Not used
-// import { ja } from 'date-fns/locale'; // Not used
 import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON, formatArchetypeNameWithSuffix } from "@/lib/game-data";
 import {
   AlertDialog,
@@ -28,6 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 
 interface UserLogTableProps {
@@ -36,10 +35,19 @@ interface UserLogTableProps {
   onDeleteMatch: (matchId: string) => void;
   onEditRequest: (match: MatchData) => void;
   gameClassMapping: GameClassNameMap;
-  isReadOnly?: boolean; // Added to disable actions for other users' logs
+  isReadOnly?: boolean;
+  isMinimal?: boolean; // New prop for minimal row height
 }
 
-export function UserLogTable({ matches, archetypes, onDeleteMatch, onEditRequest, gameClassMapping, isReadOnly = false }: UserLogTableProps) {
+export function UserLogTable({ 
+  matches, 
+  archetypes, 
+  onDeleteMatch, 
+  onEditRequest, 
+  gameClassMapping, 
+  isReadOnly = false,
+  isMinimal = false 
+}: UserLogTableProps) {
   const getArchetypeDetails = (archetypeId: string): Archetype | undefined => {
     return archetypes.find(a => a.id === archetypeId);
   };
@@ -67,19 +75,41 @@ export function UserLogTable({ matches, archetypes, onDeleteMatch, onEditRequest
 
   const totalMatches = matches.length;
 
+  // Define styles based on isMinimal prop
+  const cellPaddingY = isMinimal ? 'py-0' : 'py-1';
+  const cellPaddingX = isMinimal ? 'px-1' : 'px-2';
+  const fontSize = isMinimal ? 'text-[10px]' : 'text-xs';
+  const headerHeight = isMinimal ? 'h-auto' : 'h-auto'; // Let padding dictate
+  const headerPaddingY = isMinimal ? 'py-0.5' : 'py-1';
+  const headerPaddingX = isMinimal ? 'px-1' : 'px-2';
+  const headerFontSize = isMinimal ? 'text-[10px]' : 'text-xs';
+  
+  const cellIconSize = isMinimal ? 'h-3 w-3' : 'h-4 w-4';
+  const actionIconSize = isMinimal ? 'h-3 w-3' : 'h-4 w-4';
+  
+  const actionButtonBaseClasses = "variant=\"ghost\""; // common for both
+  const actionButtonSizeClasses = isMinimal 
+    ? "p-0.5 h-5 w-5 flex items-center justify-center" 
+    : "p-1 h-7 w-7 flex items-center justify-center"; // Using sm size effectively by custom padding
+
+  const badgeBaseClasses = "capitalize";
+  const badgeStyleClasses = isMinimal 
+    ? "px-1 py-0 text-[9px] leading-tight" 
+    : "px-1.5 py-0 text-[10px] leading-tight";
+
   return (
     <TooltipProvider>
-      <div className="rounded-lg border overflow-x-auto relative max-h-[calc(100vh-350px)]"> {/* Adjusted max-h */}
-        <Table>
+      <div className="rounded-lg border overflow-x-auto relative"> {/* Removed max-h from here */}
+        <Table className={fontSize}>
           <TableHeader>
             <TableRow>
-              <TableHead className="sticky top-0 bg-card z-10 w-[80px]">番号</TableHead>
-              <TableHead className="sticky top-0 bg-card z-10 min-w-[180px]">自分のデッキタイプ</TableHead>
-              <TableHead className="sticky top-0 bg-card z-10 min-w-[180px]">相手のデッキタイプ</TableHead>
-              <TableHead className="sticky top-0 bg-card z-10 w-[80px]">先後</TableHead>
-              <TableHead className="sticky top-0 bg-card z-10 w-[80px]">勝敗</TableHead>
-              <TableHead className="sticky top-0 bg-card z-10 min-w-[200px]">メモ</TableHead>
-              <TableHead className="sticky top-0 bg-card z-10 text-right w-[120px]">操作</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 w-[60px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize)}>番号</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[150px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize)}>自分のデッキタイプ</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[150px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize)}>相手のデッキタイプ</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 w-[70px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize)}>先後</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 w-[70px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize)}>勝敗</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[150px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize)}>メモ</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 text-right w-[100px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize)}>操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -99,33 +129,34 @@ export function UserLogTable({ matches, archetypes, onDeleteMatch, onEditRequest
 
               return (
                 <TableRow key={match.id} className="hover:bg-muted/50">
-                  <TableCell>{matchNumber}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <UserIcon className="h-4 w-4 text-muted-foreground" />
+                  <TableCell className={cn(cellPaddingY, cellPaddingX)}>{matchNumber}</TableCell>
+                  <TableCell className={cn(cellPaddingY, cellPaddingX)}>
+                    <div className="flex items-center gap-1">
+                      <UserIcon className={cn(cellIconSize, "text-muted-foreground")} />
                       {userArchetype ? formatArchetypeNameWithSuffix(userArchetype) : '不明'}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <OpponentIcon className="h-4 w-4 text-muted-foreground" />
+                  <TableCell className={cn(cellPaddingY, cellPaddingX)}>
+                    <div className="flex items-center gap-1">
+                      <OpponentIcon className={cn(cellIconSize, "text-muted-foreground")} />
                       {opponentArchetype ? formatArchetypeNameWithSuffix(opponentArchetype) : '不明'}
                     </div>
                   </TableCell>
-                  <TableCell>{getTurnText(match.turn)}</TableCell>
-                  <TableCell>
+                  <TableCell className={cn(cellPaddingY, cellPaddingX)}>{getTurnText(match.turn)}</TableCell>
+                  <TableCell className={cn(cellPaddingY, cellPaddingX)}>
                     <Badge variant={match.result === 'win' ? 'default' : 'destructive'}
-                          className={`capitalize ${match.result === 'win' ? 'bg-lime-500 hover:bg-lime-600 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}>
+                          className={cn(badgeBaseClasses, badgeStyleClasses, 
+                                      match.result === 'win' ? 'bg-lime-500 hover:bg-lime-600 text-white' : 'bg-red-600 hover:bg-red-700 text-white')}>
                       {getResultText(match.result)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate" title={match.notes || undefined}>{match.notes || '-'}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className={cn("max-w-[150px] truncate", cellPaddingY, cellPaddingX)} title={match.notes || undefined}>{match.notes || '-'}</TableCell>
+                  <TableCell className={cn("text-right", cellPaddingY, cellPaddingX)}>
                     {isReadOnly ? (
                        <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-muted-foreground cursor-not-allowed mr-1" disabled>
-                                <EyeOff className="h-4 w-4" />
+                            <Button variant="ghost" className={cn("text-muted-foreground cursor-not-allowed", actionButtonSizeClasses)} disabled>
+                                <EyeOff className={actionIconSize} />
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -134,13 +165,13 @@ export function UserLogTable({ matches, archetypes, onDeleteMatch, onEditRequest
                        </Tooltip>
                     ) : (
                       <>
-                        <Button variant="ghost" size="icon" className="text-primary hover:text-primary/80 mr-1" onClick={() => onEditRequest(match)}>
-                          <Edit3 className="h-4 w-4" />
+                        <Button variant="ghost" className={cn("text-primary hover:text-primary/80 mr-0.5", actionButtonSizeClasses)} onClick={() => onEditRequest(match)}>
+                          <Edit3 className={actionIconSize} />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80">
-                              <Trash2 className="h-4 w-4" />
+                            <Button variant="ghost" className={cn("text-destructive hover:text-destructive/80", actionButtonSizeClasses)}>
+                              <Trash2 className={actionIconSize} />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>

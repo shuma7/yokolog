@@ -28,17 +28,16 @@ export default function PersonalLogPage() {
   const { matches, deleteMatch, updateMatch } = useMatchLogger();
   const { archetypes } = useArchetypeManager();
   const { toast } = useToast();
-  const { username } = useUsername(); // Get current username
+  const { username } = useUsername(); 
 
   const [editingMatch, setEditingMatch] = useState<MatchData | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const gameClassMapping: GameClassNameMap = GAME_CLASS_EN_TO_JP;
 
-  // Filter matches for the current user and sort them
   const currentUserMatches = useMemo(() => {
     if (!username) return [];
-    return [...matches] // matches from useMatchLogger are already for the current user
+    return [...matches] 
              .sort((a, b) => b.timestamp - a.timestamp);
   }, [matches, username]);
 
@@ -64,11 +63,11 @@ export default function PersonalLogPage() {
   };
 
   const handleUpdateMatchSubmit = (data: MatchFormValues) => {
-    if (editingMatch && username) { // Ensure username and editingMatch are present
+    if (editingMatch && username) { 
       try {
         const updatedMatchData: MatchData = {
           ...editingMatch,
-          userId: username, // Ensure userId is correctly assigned
+          userId: username, 
           userArchetypeId: data.userArchetypeId,
           opponentArchetypeId: data.opponentArchetypeId,
           turn: data.turn,
@@ -116,14 +115,17 @@ export default function PersonalLogPage() {
                 <TabsTrigger value="summary-data">集計データ</TabsTrigger>
               </TabsList>
               <TabsContent value="log-list" className="mt-6">
-                <UserLogTable
-                  matches={currentUserMatches}
-                  archetypes={archetypes}
-                  onDeleteMatch={handleDeleteMatch}
-                  onEditRequest={handleEditRequest}
-                  gameClassMapping={gameClassMapping}
-                  isReadOnly={false} // Logs on this page are always editable by the owner
-                />
+                <div className="max-h-[calc(100vh-220px)] overflow-y-auto"> {/* Adjusted max-h here */}
+                  <UserLogTable
+                    matches={currentUserMatches}
+                    archetypes={archetypes}
+                    onDeleteMatch={handleDeleteMatch}
+                    onEditRequest={handleEditRequest}
+                    gameClassMapping={gameClassMapping}
+                    isReadOnly={false} 
+                    isMinimal={false} // Use standard compact styling for personal log
+                  />
+                </div>
               </TabsContent>
               <TabsContent value="summary-data" className="mt-6">
                 <AggregatedStatsDisplay matches={currentUserMatches} archetypes={archetypes} gameClassMapping={gameClassMapping} />
