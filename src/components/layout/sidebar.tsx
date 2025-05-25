@@ -17,7 +17,7 @@ import { useUsername } from '@/hooks/use-username';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
-  { href: '/', label: '対戦追加', icon: PlusSquare },
+  { href: '/', label: 'ログ追加', icon: PlusSquare },
   { href: '/log', label: '個人ログ', icon: ListChecks },
   { href: '/matchups', label: '相性表', icon: BarChart3 },
   { href: '/archetypes/new', label: 'デッキタイプ管理', icon: BotMessageSquare },
@@ -30,6 +30,8 @@ export function AppSidebar() {
 
   const handleLogout = () => {
     setUsername(null);
+    // Optionally, redirect to home or a login page
+    // router.push('/'); 
   };
 
   return (
