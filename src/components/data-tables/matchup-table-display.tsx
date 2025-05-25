@@ -75,7 +75,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
       // Sort "unknown" archetype to the very end
       if (a.id === 'unknown' && b.id !== 'unknown') return 1;
       if (a.id !== 'unknown' && b.id === 'unknown') return -1;
-      if (a.id === 'unknown' && b.id === 'unknown') return 0; // Should not happen if IDs are unique
+      if (a.id === 'unknown' && b.id === 'unknown') return 0;
 
       const classOrderA = getClassOrder(a.gameClass);
       const classOrderB = getClassOrder(b.gameClass);
@@ -125,13 +125,16 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
           let perspectiveResult: 'win' | 'loss' | null = null;
           let perspectiveTurn: 'first' | 'second' | 'unknown' | null = null;
 
-          // Case 1: rowArch is user, colArch is opponent
+          // Case 1: rowArch is user, colArch is opponent (Direct perspective)
           if (match.userArchetypeId === rowArch.id && match.opponentArchetypeId === colArch.id) {
             perspectiveResult = match.result;
             perspectiveTurn = match.turn;
           }
-          // Case 2: colArch is user, rowArch is opponent (invert result and turn)
-          else if (match.userArchetypeId === colArch.id && match.opponentArchetypeId === rowArch.id) {
+          // Case 2: colArch is user, rowArch is opponent (Inverted perspective for symmetry)
+          // IMPORTANT: Only apply inversion if not a mirror match (rowArch.id !== colArch.id)
+          else if (rowArch.id !== colArch.id &&
+                     match.userArchetypeId === colArch.id &&
+                     match.opponentArchetypeId === rowArch.id) {
             perspectiveResult = match.result === 'win' ? 'loss' : 'win';
             if (match.turn === 'first') perspectiveTurn = 'second';
             else if (match.turn === 'second') perspectiveTurn = 'first';
@@ -364,7 +367,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                           </TableCell>
                         );
                       })}
-                      <TableCell className="p-0 min-w-[120px] bg-card"> {/* "Total" Data Cell, no longer sticky right */}
+                      <TableCell className="p-0 min-w-[120px] bg-card"> {/* "Total" Data Cell */}
                          {renderStatsCell(totalStatsForUserArch, userArch)}
                       </TableCell>
                     </TableRow>
@@ -378,6 +381,4 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
     </Card>
   );
 }
-    
-
     
