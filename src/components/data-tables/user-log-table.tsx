@@ -36,7 +36,7 @@ interface UserLogTableProps {
   onEditRequest: (match: MatchData) => void;
   gameClassMapping: GameClassNameMap;
   isReadOnly?: boolean;
-  isMinimal?: boolean; // New prop for minimal row height
+  isMinimal?: boolean; 
 }
 
 export function UserLogTable({ 
@@ -76,30 +76,30 @@ export function UserLogTable({
   const totalMatches = matches.length;
 
   // Define styles based on isMinimal prop
-  const cellPaddingY = isMinimal ? 'py-0' : 'py-0.5'; // Reduced for non-minimal
+  const cellPaddingY = isMinimal ? 'py-0' : 'py-0'; 
   const cellPaddingX = isMinimal ? 'px-1' : 'px-2';
-  const fontSize = isMinimal ? 'text-[10px]' : 'text-xs';
-  const headerHeight = isMinimal ? 'h-auto' : 'h-auto'; // Let padding dictate
-  const headerPaddingY = isMinimal ? 'py-0.5' : 'py-0.5'; // Reduced for non-minimal
+  const fontSize = isMinimal ? 'text-[10px]' : 'text-sm'; 
+  const headerHeight = isMinimal ? 'h-auto' : 'h-auto'; 
+  const headerPaddingY = isMinimal ? 'py-0.5' : 'py-0'; 
   const headerPaddingX = isMinimal ? 'px-1' : 'px-2';
-  const headerFontSize = isMinimal ? 'text-[10px]' : 'text-xs';
+  const headerFontSize = isMinimal ? 'text-[10px]' : 'text-sm'; 
   
-  const cellIconSize = isMinimal ? 'h-3 w-3' : 'h-4 w-4';
-  const actionIconSize = isMinimal ? 'h-3 w-3' : 'h-4 w-4';
+  const cellIconSize = isMinimal ? 'h-3 w-3' : 'h-4 w-4'; 
+  const actionIconSize = isMinimal ? 'h-3 w-3' : 'h-4 w-4'; 
   
-  const actionButtonBaseClasses = "variant=\"ghost\""; // common for both
+  const actionButtonBaseClasses = "variant=\"ghost\""; 
   const actionButtonSizeClasses = isMinimal 
     ? "p-0.5 h-5 w-5 flex items-center justify-center" 
-    : "p-1 h-7 w-7 flex items-center justify-center"; // Using sm size effectively by custom padding
+    : "p-0.5 h-6 w-6 flex items-center justify-center"; 
 
   const badgeBaseClasses = "capitalize";
   const badgeStyleClasses = isMinimal 
     ? "px-1 py-0 text-[9px] leading-tight" 
-    : "px-1.5 py-0 text-[10px] leading-tight";
+    : "px-1.5 py-0 text-[11px] leading-tight"; 
 
   return (
     <TooltipProvider>
-      <div className="rounded-lg border overflow-x-auto relative"> {/* Removed max-h from here */}
+      <div className="rounded-lg border overflow-x-auto relative"> 
         <Table className={fontSize}>
           <TableHeader>
             <TableRow>
