@@ -96,14 +96,12 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
 
   useEffect(() => {
     if (availableArchetypesForFilter.length > 0) {
-      // Initialize with all available archetypes selected, only if selectedArchetypeIds is currently empty
-      // This prevents re-selecting all if the user has already made a selection.
       if(selectedArchetypeIds.length === 0 && availableArchetypesForFilter.length > 0) {
          setSelectedArchetypeIds(availableArchetypesForFilter.map(a => a.id));
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availableArchetypesForFilter]); // Removed selectedArchetypeIds from deps to prevent loop with initial set
+  }, [availableArchetypesForFilter]);
 
   const displayArchetypes = useMemo(() => {
     return availableArchetypesForFilter
@@ -122,25 +120,26 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
         const firstTurnItems: Array<{ result: 'win' | 'loss' }> = [];
         const secondTurnItems: Array<{ result: 'win' | 'loss' }> = [];
 
-        if (rowArch.id === colArch.id) {
+        if (rowArch.id === colArch.id) { // Mirror match
           matches.forEach(match => {
             if (match.userArchetypeId === rowArch.id && match.opponentArchetypeId === colArch.id) {
+              // User's perspective
               overallItems.push({ result: match.result });
               if (match.turn === 'first') {
                 firstTurnItems.push({ result: match.result });
               } else if (match.turn === 'second') {
                 secondTurnItems.push({ result: match.result });
               }
-              // For mirror, from "opponent's" perspective (also rowArch)
+              // Implied opponent's perspective (same archetype)
               overallItems.push({ result: match.result === 'win' ? 'loss' : 'win' });
-              if (match.turn === 'first') { 
+              if (match.turn === 'first') { // If user was first, opponent was second
                 secondTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' });
-              } else if (match.turn === 'second') { 
+              } else if (match.turn === 'second') { // If user was second, opponent was first
                 firstTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' });
               }
             }
           });
-        } else { 
+        } else { // Non-mirror match
           matches.forEach(match => {
             let perspectiveResult: 'win' | 'loss' | null = null;
             let perspectiveTurn: 'first' | 'second' | 'unknown' | null = null;
@@ -234,12 +233,11 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
     const overallWinRate = stats.overall.winRate;
     let cellBgClass = "hover:bg-muted/50";
     if (stats.overall.gamesPlayed > 0) {
-      // Only color non-mirror matches based on win rate
-      if (!oppArchForPopover || userArchForPopover.id !== oppArchForPopover.id) { 
+      if (oppArchForPopover && userArchForPopover.id === oppArchForPopover.id) { // Mirror match cell styling
+        cellBgClass = "bg-muted/30 hover:bg-muted/50";
+      } else { // Only color non-mirror matches based on win rate
         if (overallWinRate >= 55) cellBgClass = "bg-blue-600/20 hover:bg-blue-600/30";
         else if (overallWinRate <= 45) cellBgClass = "bg-red-600/20 hover:bg-red-600/30";
-      } else { // Mirror match cell styling
-        cellBgClass = "bg-muted/30 hover:bg-muted/50";
       }
     }
     
@@ -367,7 +365,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                   const totalStatsForUserArch = archetypeOverallPerformance[userArch.id];
                   return (
                     <TableRow key={userArch.id}>
-                      <TableCell className="sticky left-0 z-10 bg-card font-medium min-w-[100px] w-[100px] p-0.5">
+                      <TableCell className="sticky top-0 left-0 z-10 bg-card font-medium min-w-[100px] w-[100px] p-0.5">
                         <div className="flex items-center gap-0.5">
                           <UserIcon className="h-3.5 w-3.5" />
                           <span className="text-[10px] leading-tight break-all">{formatArchetypeNameWithSuffix(userArch)}</span>
@@ -381,7 +379,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                           </TableCell>
                         );
                       })}
-                      <TableCell className="p-0 min-w-[70px] bg-card">
+                      <TableCell className="p-0 min-w-[70px] bg-card"> {/* Total column no longer sticky right */}
                          {renderStatsCell(totalStatsForUserArch, userArch)}
                       </TableCell>
                     </TableRow>
@@ -395,5 +393,3 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
     </Card>
   );
 }
-
-    
