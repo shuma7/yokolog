@@ -60,7 +60,6 @@ const getArchetypeDisplayInfo = (archetypeId: string | undefined, archetypes: Ar
   if (!archetypeId) return null;
   const archetype = archetypes.find(a => a.id === archetypeId);
   if (!archetype) return { name: "不明なデッキタイプ" };
-  // Display name formatting now happens here using the imported function
   return { name: formatArchetypeNameWithSuffix(archetype) };
 };
 
@@ -207,6 +206,21 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
     setIsUserArchetypeSelectOpen(false);
     setIsOpponentArchetypeSelectOpen(false);
     setCurrentUiStep('opponentClass');
+  };
+
+  const resetToHome = () => {
+    setUserSelectedClass(null);
+    setOpponentSelectedClass(null);
+    form.reset({
+      userArchetypeId: "",
+      opponentArchetypeId: "",
+      turn: undefined,
+      result: undefined,
+      notes: "",
+    });
+    setIsUserArchetypeSelectOpen(false);
+    setIsOpponentArchetypeSelectOpen(false);
+    setCurrentUiStep('userClass');
   };
 
   function handleFormSubmit(data: MatchFormValues) {
@@ -375,7 +389,22 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
               />
             )}
 
-            {showOpponentClass && renderClassSelector(opponentSelectedClass, handleOpponentClassSelect, "相手のクラス")}
+            {showOpponentClass && (
+                <>
+                    {renderClassSelector(opponentSelectedClass, handleOpponentClassSelect, "相手のクラス")}
+                    {!initialData?.id && currentUiStep === 'opponentClass' && (
+                        <Button
+                            type="button"
+                            variant="link"
+                            onClick={resetToHome}
+                            className="text-sm text-muted-foreground hover:text-primary px-0"
+                        >
+                            ホームに戻る (自分のクラスをリセット)
+                        </Button>
+                    )}
+                </>
+            )}
+
 
             {showOpponentArchetype && (
               <FormField
