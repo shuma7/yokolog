@@ -23,11 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ALL_GAME_CLASSES, type GameClass, type Archetype } from "@/types";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription as UiCardDescription } from "@/components/ui/card"; // Renamed to avoid conflict
+import React from "react"; // Import React for useEffect
 
 const archetypeFormSchema = z.object({
   name: z.string().min(1, "名前は1文字以上で入力してください。").max(50, "名前は50文字以内で入力してください。"),
-  abbreviation: z.string().min(1, "略称は必須です。").max(10, "略称は10文字以内で入力してください。"), // We keep abbreviation for data, but it's not used in display
+  abbreviation: z.string().min(1, "略称は必須です。").max(10, "略称は10文字以内で入力してください。"),
   gameClass: z.enum(ALL_GAME_CLASSES.map(gc => gc.value) as [GameClass, ...GameClass[]], { required_error: "クラスを選択してください。" }),
 });
 
@@ -35,11 +35,12 @@ type ArchetypeFormValues = z.infer<typeof archetypeFormSchema>;
 
 interface ArchetypeFormProps {
   onSubmit: (data: ArchetypeFormValues) => void;
-  initialData?: Partial<Archetype>; // Made Partial to handle new/edit scenarios
+  initialData?: Partial<Archetype>;
   submitButtonText?: string;
+  isEditingUnknown?: boolean; // To handle the 'unknown' archetype specially if needed
 }
 
-export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "デッキタイプ追加" }: ArchetypeFormProps) {
+export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "デッキタイプ追加", isEditingUnknown = false }: ArchetypeFormProps) {
   const form = useForm<ArchetypeFormValues>({
     resolver: zodResolver(archetypeFormSchema),
     defaultValues: {
@@ -47,14 +48,11 @@ export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "デ�
       abbreviation: initialData?.abbreviation || "",
       gameClass: initialData?.gameClass || undefined,
     },
-    // Reset form values when initialData changes (e.g., when opening dialog for different archetypes)
     resetOptions: {
         keepDirtyValues: false, 
     },
   });
 
-  // Effect to reset form when initialData changes
-  // This is crucial when the same form instance is used for add then edit, or edit different items
   React.useEffect(() => {
     form.reset({
       name: initialData?.name || "",
@@ -66,8 +64,6 @@ export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "デ�
 
   const currentSubmitText = initialData?.id ? (submitButtonText || "デッキタイプ更新") : (submitButtonText || "デッキタイプ追加");
   const isEditing = !!initialData?.id;
-  const isDefaultArchetype = initialData?.isDefault || false;
-
 
   function handleSubmit(data: ArchetypeFormValues) {
     onSubmit(data);
@@ -76,8 +72,6 @@ export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "デ�
     }
   }
 
-  // For the dialog context, we remove the outer Card component from here
-  // and let the page manage the Card/Dialog styling.
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 py-4">
@@ -88,7 +82,7 @@ export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "デ�
             <FormItem>
               <FormLabel>デッキタイプ名</FormLabel>
               <FormControl>
-                <Input placeholder="例：コントロール" {...field} disabled={isEditing && isDefaultArchetype} />
+                <Input placeholder="例：コントロール" {...field} />
               </FormControl>
               <FormDescription>
                 クラスに基づくアルファベットが自動で付加されるので、デッキタイプ名にクラス名を含めないでください（例：「コントロール」と入力すると「コントロールE」のように表示されます）。
@@ -104,7 +98,7 @@ export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "デ�
             <FormItem>
               <FormLabel>略称 (内部データ用)</FormLabel>
               <FormControl>
-                <Input placeholder="例：コン" {...field} disabled={isEditing && isDefaultArchetype} />
+                <Input placeholder="例：コン" {...field} />
               </FormControl>
                <FormDescription>
                 この略称は表示には使用されませんが、データ識別のために必要です。
@@ -122,7 +116,6 @@ export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "デ�
               <Select 
                 onValueChange={field.onChange} 
                 defaultValue={field.value}
-                disabled={isEditing && isDefaultArchetype}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -141,12 +134,9 @@ export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "デ�
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={isEditing && isDefaultArchetype}>
+        <Button type="submit" className="w-full">
           {currentSubmitText}
         </Button>
-        {isEditing && isDefaultArchetype && (
-            <p className="text-sm text-destructive text-center pt-2">デフォルトのデッキタイプは編集できません。</p>
-        )}
       </form>
     </Form>
   );

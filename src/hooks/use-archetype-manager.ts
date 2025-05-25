@@ -2,7 +2,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import useLocalStorage from './use-local-storage';
 import type { Archetype, GameClass } from '@/types';
-import { INITIAL_ARCHETYPES, GAME_CLASS_EN_TO_JP } from '@/lib/game-data'; // Import GAME_CLASS_EN_TO_JP
+import { INITIAL_ARCHETYPES, GAME_CLASS_EN_TO_JP, GAME_CLASS_SUFFIX_MAP } from '@/lib/game-data';
 import { useEffect, useCallback } from 'react';
 
 const ARCHETYPES_KEY = 'yokolog_archetypes';
@@ -24,7 +24,7 @@ const migratedInitialArchetypes = INITIAL_ARCHETYPES.map(archetype => {
 export function useArchetypeManager() {
   const [archetypes, setArchetypesInternal] = useLocalStorage<Archetype[]>(ARCHETYPES_KEY, migratedInitialArchetypes);
 
-  // Data migration effect for class names (Shadowcraft/Bloodcraft to Nightmare) - run once on mount
+  // Data migration effect for class names (Shadowcraft/Bloodcraft to Nightmare)
   useEffect(() => {
     let hasClassChanges = false;
     const migratedClassArchetypes = archetypes.map(arch => {
@@ -38,50 +38,44 @@ export function useArchetypeManager() {
 
     if (hasClassChanges) {
       setArchetypesInternal(migratedClassArchetypes);
-      // If class migration happened, subsequent name cleaning will operate on this migrated data in the next effect
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+  }, []); // Run once based on initial archetypes loaded
 
-  // Data migration effect for cleaning Japanese class names from archetype names
+  // Data migration/cleaning effect for archetype names
   useEffect(() => {
     let hasNameChanges = false;
     const japaneseClassNamesToRemove = Object.values(GAME_CLASS_EN_TO_JP);
-    const oldJapaneseClassNames = ["ネクロマンサー", "ヴァンパイア"]; // In case these were used in names
+    const oldJapaneseClassNames = ["ネクロマンサー", "ヴァンパイア"];
     const allNamesToRemoveSet = new Set([...japaneseClassNamesToRemove, ...oldJapaneseClassNames]);
+    const classSuffixesToRemove = Object.values(GAME_CLASS_SUFFIX_MAP);
+
 
     const cleanedNameArchetypes = archetypes.map(arch => {
+      if (arch.id === 'unknown') return arch; // Do not clean the name of 'unknown' archetype
+
       let newName = arch.name;
       let nameWasChangedInThisIteration = false;
+
       allNamesToRemoveSet.forEach(jpClassName => {
         if (newName.includes(jpClassName)) {
-          newName = newName.replace(new RegExp(jpClassName, 'g'), '').trim(); // Replace all occurrences
+          newName = newName.replace(new RegExp(jpClassName, 'g'), '').trim();
           nameWasChangedInThisIteration = true;
         }
       });
       
-      // Remove trailing alphabetic suffixes from old formats if they exist and match a class (e.g. "コントロールE" -> "コントロール")
-      // This is less critical now with explicit suffixing but good for cleanup.
-      const potentialSuffix = newName.slice(-1);
-      const potentialTwoCharSuffix = newName.slice(-2);
-      
-      const classSuffixes = ["E", "R", "W", "D", "B", "Ni", "Nm"]; // Ni, Nm are two chars
+      classSuffixesToRemove.forEach(suffix => {
+        if (newName.endsWith(suffix)) {
+          newName = newName.slice(0, -suffix.length).trim();
+          nameWasChangedInThisIteration = true;
+        }
+      });
 
-      if (classSuffixes.includes(potentialTwoCharSuffix) && newName.length > 2) {
-         newName = newName.slice(0, -2).trim();
-         nameWasChangedInThisIteration = true;
-      } else if (classSuffixes.includes(potentialSuffix) && newName.length > 1 && !classSuffixes.includes(newName.slice(-2))) { 
-         // Avoids removing 'i' from 'Ni' if it was already Ni
-         newName = newName.slice(0, -1).trim();
-         nameWasChangedInThisIteration = true;
-      }
-
-
-      newName = newName.replace(/\s\s+/g, ' ').trim(); // Remove multiple spaces
+      newName = newName.replace(/\s\s+/g, ' ').trim(); 
 
       if (nameWasChangedInThisIteration) {
         hasNameChanges = true;
-        return { ...arch, name: newName === "" ? "（名称不明）" : newName }; // Prevent empty names
+        return { ...arch, name: newName === "" ? "（名称不明）" : newName };
       }
       return arch;
     });
@@ -90,7 +84,48 @@ export function useArchetypeManager() {
       setArchetypesInternal(cleanedNameArchetypes);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [archetypes]); // Rerun if archetypes change (e.g. after class migration or manual add)
+  }, [archetypes]); // Re-run if archetypes themselves change
+
+
+  // Ensure 'Unknown Opponent' archetype exists and is correctly migrated/set up
+ useEffect(() => {
+    let currentArchetypesSnapshot = archetypes; 
+    let updatedArchetypesWorkingCopy = [...currentArchetypesSnapshot];
+    let needsUpdate = false;
+
+    const unknownArchetypeFromStorage = updatedArchetypesWorkingCopy.find(arch => arch.id === 'unknown');
+    const unknownArchetypeTemplate = INITIAL_ARCHETYPES.find(arch => arch.id === 'unknown');
+
+    if (!unknownArchetypeTemplate) {
+        console.error("INITIAL_ARCHETYPES is missing the 'unknown' template.");
+        return;
+    }
+    
+    const targetUnknownArchetype = migrateArchetypeClass(unknownArchetypeTemplate);
+
+    if (!unknownArchetypeFromStorage) {
+      updatedArchetypesWorkingCopy = [targetUnknownArchetype, ...updatedArchetypesWorkingCopy.filter(a => a.id !== 'unknown')];
+      needsUpdate = true;
+    } else {
+      const migratedUnknownInStorage = migrateArchetypeClass(unknownArchetypeFromStorage);
+      if (
+        migratedUnknownInStorage.gameClass !== targetUnknownArchetype.gameClass || 
+        migratedUnknownInStorage.name !== targetUnknownArchetype.name ||
+        migratedUnknownInStorage.abbreviation !== targetUnknownArchetype.abbreviation ||
+        migratedUnknownInStorage.isDefault !== targetUnknownArchetype.isDefault
+      ) { 
+        updatedArchetypesWorkingCopy = updatedArchetypesWorkingCopy.map(arch =>
+          arch.id === 'unknown' ? { ...targetUnknownArchetype, ...migratedUnknownInStorage, gameClass: targetUnknownArchetype.gameClass } : arch // Prioritize template class, keep other stored edits if any
+        );
+        needsUpdate = true;
+      }
+    }
+
+    if (needsUpdate) {
+      setArchetypesInternal(updatedArchetypesWorkingCopy);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // This effect for unknown archetype runs once on mount
 
   const setArchetypes = useCallback((value: Archetype[] | ((val: Archetype[]) => Archetype[])) => {
     setArchetypesInternal(value);
@@ -103,22 +138,25 @@ export function useArchetypeManager() {
       name,
       abbreviation,
       gameClass,
-      isDefault: false,
+      isDefault: false, // New archetypes are never default
     };
     setArchetypes(prev => [...prev, newArchetype]);
     return newArchetype;
   };
 
   const updateArchetype = (updatedArchetype: Archetype) => {
-    if (updatedArchetype.isDefault && updatedArchetype.id !== 'unknown') {
-        console.warn("Attempting to update a default archetype. This might be restricted by UI.");
+    // For 'unknown' archetype, ensure its ID is not changed
+    if (updatedArchetype.id === 'unknown') {
+      setArchetypes(prev =>
+        prev.map(arch => (arch.id === 'unknown' ? { ...updatedArchetype, id: 'unknown' } : arch))
+      );
+    } else {
+      setArchetypes(prev =>
+        prev.map(arch => (arch.id === updatedArchetype.id ? updatedArchetype : arch))
+      );
     }
-    setArchetypes(prev =>
-      prev.map(arch => (arch.id === updatedArchetype.id ? { ...arch, ...updatedArchetype } : arch))
-    );
     return updatedArchetype;
   };
-
 
   const getArchetypeById = (id: string): Archetype | undefined => {
     return archetypes.map(migrateArchetypeClass).find(arch => arch.id === id);
@@ -133,38 +171,8 @@ export function useArchetypeManager() {
     setArchetypes(prev => prev.filter(arch => arch.id !== id));
   };
 
-  useEffect(() => {
-    const currentArchetypesSnapshot = archetypes; 
-    let updatedArchetypesWorkingCopy = [...currentArchetypesSnapshot];
-    let needsUpdate = false;
-
-    const unknownArchetypeFromStorage = updatedArchetypesWorkingCopy.find(arch => arch.id === 'unknown');
-    
-    if (!unknownArchetypeFromStorage) {
-      const unknownArchetypeTemplate = INITIAL_ARCHETYPES.find(arch => arch.id === 'unknown');
-      if (unknownArchetypeTemplate) {
-        updatedArchetypesWorkingCopy = [migrateArchetypeClass(unknownArchetypeTemplate), ...updatedArchetypesWorkingCopy.filter(a => a.id !== 'unknown')];
-        needsUpdate = true;
-      }
-    } else {
-      const migratedUnknown = migrateArchetypeClass(unknownArchetypeFromStorage);
-      if (migratedUnknown.gameClass !== unknownArchetypeFromStorage.gameClass || 
-          migratedUnknown.name !== unknownArchetypeFromStorage.name) { 
-        updatedArchetypesWorkingCopy = updatedArchetypesWorkingCopy.map(arch =>
-          arch.id === 'unknown' ? migratedUnknown : arch
-        );
-        needsUpdate = true;
-      }
-    }
-
-    if (needsUpdate) {
-      setArchetypesInternal(updatedArchetypesWorkingCopy);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // This effect for unknown archetype runs once on mount
-
   return { 
-    archetypes: archetypes.map(migrateArchetypeClass), // Ensure returned archetypes are always class-migrated
+    archetypes: archetypes.map(migrateArchetypeClass),
     addArchetype, 
     updateArchetype,
     getArchetypeById, 
@@ -172,3 +180,5 @@ export function useArchetypeManager() {
     setArchetypes 
   };
 }
+
+    
