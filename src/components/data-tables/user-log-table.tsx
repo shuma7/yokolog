@@ -75,7 +75,6 @@ export function UserLogTable({
 
   const totalMatches = matches.length;
 
-  // Define styles based on isMinimal prop
   const cellPaddingY = isMinimal ? 'py-0' : 'py-0';
   const cellPaddingX = isMinimal ? 'px-1' : 'px-2'; 
   
@@ -98,7 +97,7 @@ export function UserLogTable({
     ? "px-1 py-0 text-[9px] leading-tight"
     : (isMinimal === false ? "px-1.5 py-0 text-[11px] leading-tight" : "px-2 py-0.5 text-xs"); 
 
-  const tableCellTextClasses = isMinimal ? "" : (isMinimal === false ? "leading-tight" : ""); 
+  const tableCellTextClasses = isMinimal ? "leading-tight" : (isMinimal === false ? "leading-tight" : ""); 
 
   return (
     <TooltipProvider>
@@ -111,7 +110,9 @@ export function UserLogTable({
               <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[40px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>相手のデッキ</TableHead>
               <TableHead className={cn("sticky top-0 bg-card z-10 w-[50px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>先後</TableHead>
               <TableHead className={cn("sticky top-0 bg-card z-10 w-[60px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>勝敗</TableHead>
-              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[480px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>メモ</TableHead>
+              {!isReadOnly && (
+                <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[480px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>メモ</TableHead>
+              )}
               <TableHead className={cn("sticky top-0 bg-card z-10 text-right w-[70px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>操作</TableHead>
             </TableRow>
           </TableHeader>
@@ -153,7 +154,9 @@ export function UserLogTable({
                       {getResultText(match.result)}
                     </Badge>
                   </TableCell>
-                  <TableCell className={cn("max-w-[480px] truncate", cellPaddingY, cellPaddingX, tableCellTextClasses)} title={match.notes || undefined}>{match.notes || '-'}</TableCell>
+                  {!isReadOnly && (
+                    <TableCell className={cn("max-w-[480px] truncate", cellPaddingY, cellPaddingX, tableCellTextClasses)} title={match.notes || undefined}>{match.notes || '-'}</TableCell>
+                  )}
                   <TableCell className={cn("text-right", cellPaddingY, cellPaddingX, tableCellTextClasses)}>
                     {isReadOnly ? (
                        <Tooltip>
