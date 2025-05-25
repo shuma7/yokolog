@@ -8,12 +8,12 @@ import { useMatchLogger } from "@/hooks/use-match-logger";
 import { useToast } from "@/hooks/use-toast";
 import { GAME_CLASS_EN_TO_JP } from "@/lib/game-data";
 
-export default function HomePage() { // Changed component name to HomePage
+export default function HomePage() { 
   const { archetypes } = useArchetypeManager();
   const { addMatch } = useMatchLogger();
   const { toast } = useToast();
 
-  const handleSubmit = (data: MatchFormValues) => {
+  const handleSubmit = (data: MatchFormValues, resetFormCallback: () => void) => {
     try {
       const newMatch = addMatch(data);
       if (newMatch) { 
@@ -21,6 +21,7 @@ export default function HomePage() { // Changed component name to HomePage
           title: "対戦記録完了",
           description: "対戦が正常に記録されました。",
         });
+        resetFormCallback(); // Call the reset function after successful submission
       } else {
          toast({
           title: "エラー",

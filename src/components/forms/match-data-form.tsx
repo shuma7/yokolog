@@ -22,11 +22,12 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import type { Archetype, MatchData, GameClassNameMap } from "@/types";
-import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON } from '@/lib/game-data';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import type { Archetype, MatchData, GameClassNameMap, GameClass } from "@/types";
+import { ALL_GAME_CLASSES } from '@/types'; // Corrected import
+import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON } from '@/lib/game-data'; // ALL_GAME_CLASSES removed from here
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useEffect } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 const matchDataFormSchema = z.object({
   userArchetypeId: z.string().min(1, "自分のデッキタイプを選択してください。"),
@@ -40,11 +41,20 @@ export type MatchFormValues = z.infer<typeof matchDataFormSchema>;
 
 interface MatchDataFormProps {
   archetypes: Archetype[];
-  onSubmit: (data: MatchFormValues) => void;
+  onSubmit: (data: MatchFormValues, resetFormCallback: () => void) => void;
   initialData?: Partial<MatchData>;
   submitButtonText?: string;
   gameClassMapping: GameClassNameMap;
 }
+
+type UI_STEP = 
+  | 'userClass' 
+  | 'userArchetype' 
+  | 'opponentClass' 
+  | 'opponentArchetype' 
+  | 'turn' 
+  | 'result' 
+  | 'notes';
 
 export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonText = "対戦を記録", gameClassMapping }: MatchDataFormProps) {
   const form = useForm<MatchFormValues>({
@@ -58,6 +68,40 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
     },
   });
 
+  const [userSelectedClass, setUserSelectedClass] = useState<GameClass | null>(
+    initialData?.userArchetypeId ? archetypes.find(a => a.id === initialData.userArchetypeId)?.gameClass ?? null : null
+  );
+  const [opponentSelectedClass, setOpponentSelectedClass] = useState<GameClass | null>(
+    initialData?.opponentArchetypeId ? archetypes.find(a => a.id === initialData.opponentArchetypeId)?.gameClass ?? null : null
+  );
+  
+  const [currentUiStep, setCurrentUiStep] = useState<UI_STEP>(
+    initialData?.id ? 'notes' : 'userClass' 
+  );
+
+  const notesRef = useRef<HTMLTextAreaElement>(null);
+
+  const sortedArchetypes = useMemo(() => [...archetypes].sort((a, b) => {
+    if (a.id === 'unknown') return -1;
+    if (b.id === 'unknown') return 1;
+    const classA = gameClassMapping[a.gameClass] || a.gameClass;
+    const classB = gameClassMapping[b.gameClass] || b.gameClass;
+    if (classA === classB) {
+      return a.name.localeCompare(b.name, 'ja');
+    }
+    return classA.localeCompare(classB, 'ja');
+  }), [archetypes, gameClassMapping]);
+
+  const filteredUserArchetypes = useMemo(() => {
+    if (!userSelectedClass) return [];
+    return sortedArchetypes.filter(arch => arch.gameClass === userSelectedClass || arch.id === 'unknown');
+  }, [userSelectedClass, sortedArchetypes]);
+
+  const filteredOpponentArchetypes = useMemo(() => {
+    if (!opponentSelectedClass) return [];
+    return sortedArchetypes.filter(arch => arch.gameClass === opponentSelectedClass || arch.id === 'unknown');
+  }, [opponentSelectedClass, sortedArchetypes]);
+
   useEffect(() => {
     if (initialData) {
       form.reset({
@@ -67,22 +111,70 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
         result: initialData.result || undefined,
         notes: initialData.notes || "",
       });
+      const initialUserArch = archetypes.find(a => a.id === initialData.userArchetypeId);
+      if (initialUserArch) setUserSelectedClass(initialUserArch.gameClass);
+      const initialOpponentArch = archetypes.find(a => a.id === initialData.opponentArchetypeId);
+      if (initialOpponentArch) setOpponentSelectedClass(initialOpponentArch.gameClass);
+      setCurrentUiStep('notes'); // For editing, show all fields or jump to notes
     }
-  }, [initialData, form]);
+  }, [initialData, form, archetypes]);
 
+  const handleUserClassSelect = (gameClass: GameClass) => {
+    setUserSelectedClass(gameClass);
+    form.setValue('userArchetypeId', ''); 
+    setCurrentUiStep('userArchetype');
+  };
 
-  const sortedArchetypes = [...archetypes].sort((a, b) => {
-    if (a.id === 'unknown') return -1; // Ensure 'Unknown' is always first or identifiable
-    if (b.id === 'unknown') return 1;
-    const classA = gameClassMapping[a.gameClass] || a.gameClass;
-    const classB = gameClassMapping[b.gameClass] || b.gameClass;
-    if (classA === classB) {
-      return a.name.localeCompare(b.name, 'ja');
-    }
-    return classA.localeCompare(classB, 'ja');
-  });
+  const handleOpponentClassSelect = (gameClass: GameClass) => {
+    setOpponentSelectedClass(gameClass);
+    form.setValue('opponentArchetypeId', '');
+    setCurrentUiStep('opponentArchetype');
+  };
   
-  const currentSubmitText = initialData?.id ? submitButtonText : "対戦を記録"; // Use submitButtonText if editing
+  useEffect(() => {
+    if (initialData?.id) return; // Don't auto-advance steps when editing
+
+    const subscription = form.watch((value, { name, type }) => {
+      if (type === 'change') {
+        if (name === 'userArchetypeId' && value.userArchetypeId && currentUiStep === 'userArchetype') {
+          setCurrentUiStep('opponentClass');
+        } else if (name === 'opponentArchetypeId' && value.opponentArchetypeId && currentUiStep === 'opponentArchetype') {
+          setCurrentUiStep('turn');
+        } else if (name === 'turn' && value.turn && value.turn !== 'unknown' && currentUiStep === 'turn') {
+          setCurrentUiStep('result');
+        } else if (name === 'result' && value.result && currentUiStep === 'result') {
+          setCurrentUiStep('notes');
+          notesRef.current?.focus();
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, currentUiStep, initialData?.id]);
+
+
+  const resetForNextMatch = (keptUserArchetypeId: string) => {
+    const keptUserArch = archetypes.find(a => a.id === keptUserArchetypeId);
+    if (keptUserArch) {
+        setUserSelectedClass(keptUserArch.gameClass);
+    }
+    form.reset({
+      userArchetypeId: keptUserArchetypeId,
+      opponentArchetypeId: "",
+      turn: "unknown",
+      result: undefined,
+      notes: "",
+    });
+    setOpponentSelectedClass(null);
+    setCurrentUiStep('opponentClass');
+  };
+
+  function handleFormSubmit(data: MatchFormValues) {
+    onSubmit(data, () => {
+      if (!initialData?.id) { 
+        resetForNextMatch(data.userArchetypeId);
+      }
+    });
+  }
 
   const renderArchetypeSelectItem = (archetype: Archetype) => {
     const Icon = archetype.id === 'unknown' 
@@ -99,25 +191,47 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
     );
   };
 
-
-  function handleSubmit(data: MatchFormValues) {
-    onSubmit(data);
-     if (!initialData?.id) { 
-        form.reset({ 
-            userArchetypeId: "",
-            opponentArchetypeId: "",
-            turn: "unknown",
-            result: undefined,
-            notes: "",
-        });
-    }
-  }
-
+  const renderClassSelector = (
+    selectedClass: GameClass | null,
+    onClassSelect: (gameClass: GameClass) => void,
+    title: string,
+    formMessage?: string
+  ) => (
+    <FormItem>
+      <FormLabel>{title}</FormLabel>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+        {ALL_GAME_CLASSES.map(gc => {
+          const Icon = CLASS_ICONS[gc.value] || GENERIC_ARCHETYPE_ICON;
+          return (
+            <Button
+              key={gc.value}
+              variant={selectedClass === gc.value ? "default" : "outline"}
+              onClick={() => onClassSelect(gc.value)}
+              type="button"
+              className="flex flex-col h-auto p-3 items-center justify-center space-y-1 text-center leading-tight"
+            >
+              <Icon className="h-5 w-5 mb-1" />
+              <span className="text-xs">{gc.label}</span>
+            </Button>
+          );
+        })}
+      </div>
+      {formMessage && <FormMessage>{formMessage}</FormMessage>}
+    </FormItem>
+  );
+  
   const cardTitle = initialData?.id ? "対戦編集" : "新規対戦を記録";
   const cardDescription = initialData?.id 
     ? "この対戦の詳細を更新します。"
-    : "最近の対戦の詳細を記録します。";
+    : "最近の対戦の詳細を段階的に記録します。";
 
+  const showUserClass = initialData?.id || currentUiStep === 'userClass';
+  const showUserArchetype = initialData?.id || (currentUiStep === 'userArchetype' && userSelectedClass);
+  const showOpponentClass = initialData?.id || (currentUiStep === 'opponentClass' && form.getValues("userArchetypeId"));
+  const showOpponentArchetype = initialData?.id || (currentUiStep === 'opponentArchetype' && opponentSelectedClass);
+  const showTurn = initialData?.id || (currentUiStep === 'turn' && form.getValues("opponentArchetypeId"));
+  const showResult = initialData?.id || (currentUiStep === 'result' && form.getValues("turn") !== "unknown");
+  const showNotesAndSubmit = initialData?.id || (currentUiStep === 'notes' && form.getValues("result"));
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -127,15 +241,17 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
+            {showUserClass && renderClassSelector(userSelectedClass, handleUserClassSelect, "自分のクラス")}
+            
+            {showUserArchetype && (
               <FormField
                 control={form.control}
                 name="userArchetypeId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>自分のデッキタイプ</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value || ""} required>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="自分のデッキタイプを選択" />
@@ -143,7 +259,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                       </FormControl>
                       <SelectContent>
                         <ScrollArea className="h-72">
-                         {sortedArchetypes.map(renderArchetypeSelectItem)}
+                         {filteredUserArchetypes.map(renderArchetypeSelectItem)}
                         </ScrollArea>
                       </SelectContent>
                     </Select>
@@ -151,13 +267,18 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                   </FormItem>
                 )}
               />
+            )}
+
+            {showOpponentClass && renderClassSelector(opponentSelectedClass, handleOpponentClassSelect, "相手のクラス")}
+
+            {showOpponentArchetype && (
               <FormField
                 control={form.control}
                 name="opponentArchetypeId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>相手のデッキタイプ</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value || ""} required>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="相手のデッキタイプを選択" />
@@ -165,7 +286,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                       </FormControl>
                       <SelectContent>
                         <ScrollArea className="h-72">
-                          {sortedArchetypes.map(renderArchetypeSelectItem)}
+                          {filteredOpponentArchetypes.map(renderArchetypeSelectItem)}
                         </ScrollArea>
                       </SelectContent>
                     </Select>
@@ -173,10 +294,10 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                   </FormItem>
                 )}
               />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
+            )}
+            
+            {showTurn && (
+               <FormField
                 control={form.control}
                 name="turn"
                 render={({ field }) => (
@@ -189,21 +310,15 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                         className="flex space-x-4"
                       >
                         <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="first" />
-                          </FormControl>
+                          <FormControl><RadioGroupItem value="first" /></FormControl>
                           <FormLabel className="font-normal">先攻</FormLabel>
                         </FormItem>
                         <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="second" />
-                          </FormControl>
+                          <FormControl><RadioGroupItem value="second" /></FormControl>
                           <FormLabel className="font-normal">後攻</FormLabel>
                         </FormItem>
                          <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="unknown" />
-                          </FormControl>
+                          <FormControl><RadioGroupItem value="unknown" /></FormControl>
                           <FormLabel className="font-normal">不明</FormLabel>
                         </FormItem>
                       </RadioGroup>
@@ -212,7 +327,10 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                   </FormItem>
                 )}
               />
-              <FormField
+            )}
+
+            {showResult && (
+                <FormField
                 control={form.control}
                 name="result"
                 render={({ field }) => (
@@ -225,21 +343,15 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                         className="flex space-x-4"
                       >
                         <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="win" />
-                          </FormControl>
+                          <FormControl><RadioGroupItem value="win" /></FormControl>
                           <FormLabel className="font-normal">勝利</FormLabel>
                         </FormItem>
                         <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="loss" />
-                          </FormControl>
+                          <FormControl><RadioGroupItem value="loss" /></FormControl>
                           <FormLabel className="font-normal">敗北</FormLabel>
                         </FormItem>
                         <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="draw" />
-                          </FormControl>
+                          <FormControl><RadioGroupItem value="draw" /></FormControl>
                           <FormLabel className="font-normal">引分</FormLabel>
                         </FormItem>
                       </RadioGroup>
@@ -248,32 +360,45 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                   </FormItem>
                 )}
               />
-            </div>
+            )}
 
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>メモ (任意)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="対戦に関する特記事項など..."
-                      className="resize-none"
-                      {...field}
-                      value={field.value || ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full">
-              {currentSubmitText}
-            </Button>
+            {showNotesAndSubmit && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>メモ (任意)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          ref={notesRef}
+                          placeholder="対戦に関する特記事項など..."
+                          className="resize-none"
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full">
+                  {initialData?.id ? (submitButtonText || "対戦情報を更新") : "NEXT!"}
+                </Button>
+              </>
+            )}
+            
+            {/* This explicit button for editing is only needed if the step logic somehow prevents the NEXT! button from showing in edit mode */}
+            {/* {initialData?.id && currentUiStep !== 'notes' && (
+                 <Button type="submit" className="w-full">
+                    {submitButtonText || "対戦情報を更新"}
+                 </Button>
+            )} */}
           </form>
         </Form>
       </CardContent>
     </Card>
   );
 }
+
