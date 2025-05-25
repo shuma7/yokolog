@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import useLocalStorage from './use-local-storage';
 import type { Archetype, GameClass } from '@/types';
 import { INITIAL_ARCHETYPES } from '@/lib/game-data';
+import { useEffect } from 'react'; // Added import
 
 const ARCHETYPES_KEY = 'yokolog_archetypes';
 
