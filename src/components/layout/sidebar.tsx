@@ -15,9 +15,9 @@ import {
 } from '@/components/ui/sidebar'; 
 
 const navItems = [
+  { href: '/', label: '対戦追加', icon: PlusSquare }, // Changed href to / and moved to top
   { href: '/log', label: '個人ログ', icon: ListChecks },
   { href: '/matchups', label: '相性表', icon: BarChart3 },
-  { href: '/', label: '対戦追加', icon: PlusSquare }, // Changed href to /
   { href: '/archetypes/new', label: 'デッキタイプ追加', icon: BotMessageSquare },
 ];
 
