@@ -15,9 +15,10 @@ interface UsernameContextType {
 // Create the context with an undefined initial value
 const UsernameContext = createContext<UsernameContextType | undefined>(undefined);
 
-type UsernameProviderProps = {
+// Define the Provider component props
+interface UsernameProviderProps {
   children: ReactNode;
-};
+}
 
 // Define the Provider component
 export function UsernameProvider({ children }: UsernameProviderProps) {
