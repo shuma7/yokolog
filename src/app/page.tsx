@@ -79,7 +79,7 @@ export default function HomePage() {
           {username && (
             <Card className="mb-6 bg-muted/30">
               <CardDescription className="p-3 text-sm text-center text-foreground">
-                ({username})の総試合数：{userMatches.length}戦
+                {username}の総試合数：{userMatches.length}戦
               </CardDescription>
             </Card>
           )}
@@ -89,4 +89,3 @@ export default function HomePage() {
     </div>
   );
 }
-
