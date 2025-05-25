@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
@@ -31,9 +32,7 @@ export default function RootLayout({
       geistSans.variable,
       geistMono.variable
     )}>
-      <body className={cn(
-        "antialiased bg-background text-foreground"
-      )}>
+      <body className="antialiased bg-background text-foreground">
         <ClientLayoutWrapper>
           {children}
         </ClientLayoutWrapper>
