@@ -5,8 +5,7 @@ export type GameClass =
   | "Swordcraft" 
   | "Runecraft" 
   | "Dragoncraft" 
-  | "Shadowcraft" 
-  | "Bloodcraft" 
+  | "Nightmare"  // Shadowcraft and Bloodcraft merged into Nightmare
   | "Havencraft" 
   | "Portalcraft";
 
@@ -22,8 +21,7 @@ export const ALL_GAME_CLASSES: GameClassDetail[] = [
   { value: "Swordcraft", label: "ロイヤル" },
   { value: "Runecraft", label: "ウィッチ" },
   { value: "Dragoncraft", label: "ドラゴン" },
-  { value: "Shadowcraft", label: "ネクロマンサー" },
-  { value: "Bloodcraft", label: "ヴァンパイア" },
+  { value: "Nightmare", label: "ナイトメア" }, // New Nightmare class
   { value: "Havencraft", label: "ビショップ" },
   { value: "Portalcraft", label: "ネメシス" },
 ];
@@ -44,7 +42,7 @@ export interface MatchData {
   turn: "first" | "second" | "unknown";
   result: "win" | "loss" | "draw";
   notes?: string;
-  userId?: string; // Made userId optional
+  userId?: string; 
 }
 
 export interface ArchetypeWithIcon extends Archetype {
@@ -56,12 +54,10 @@ export interface ClassIconMapping {
   Swordcraft: LucideIcon;
   Runecraft: LucideIcon;
   Dragoncraft: LucideIcon;
-  Shadowcraft: LucideIcon;
-  Bloodcraft: LucideIcon;
+  Nightmare: LucideIcon; // Nightmare icon
   Havencraft: LucideIcon;
   Portalcraft: LucideIcon;
 }
 
 // Helper type for mapping GameClass English literals to Japanese names
 export type GameClassNameMap = Record<GameClass, string>;
-
