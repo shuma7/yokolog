@@ -1,3 +1,4 @@
+
 "use client";
 
 import { MainHeader } from "@/components/layout/main-header";
@@ -13,7 +14,7 @@ export default function MatchupsPage() {
   return (
     <div className="flex flex-1 flex-col">
       <MainHeader title="デッキタイプ相性" />
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+      <main className="flex-1 overflow-y-auto p-2 md:p-3 lg:p-4"> {/* Reduced padding */}
         <div className="container mx-auto">
           <MatchupTableDisplay matches={matches} allArchetypes={archetypes} gameClassMapping={GAME_CLASS_EN_TO_JP}/>
         </div>
