@@ -76,11 +76,11 @@ export function UserLogTable({
   const totalMatches = matches.length;
 
   // Define styles based on isMinimal prop
-  const cellPaddingY = isMinimal ? 'py-0' : 'py-1';
+  const cellPaddingY = isMinimal ? 'py-0' : 'py-0.5'; // Reduced for non-minimal
   const cellPaddingX = isMinimal ? 'px-1' : 'px-2';
   const fontSize = isMinimal ? 'text-[10px]' : 'text-xs';
   const headerHeight = isMinimal ? 'h-auto' : 'h-auto'; // Let padding dictate
-  const headerPaddingY = isMinimal ? 'py-0.5' : 'py-1';
+  const headerPaddingY = isMinimal ? 'py-0.5' : 'py-0.5'; // Reduced for non-minimal
   const headerPaddingX = isMinimal ? 'px-1' : 'px-2';
   const headerFontSize = isMinimal ? 'text-[10px]' : 'text-xs';
   
