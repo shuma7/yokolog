@@ -13,8 +13,10 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/ui/sidebar'; // Corrected import for useSidebar
 import { useUsername } from '@/hooks/use-username';
 import { Button } from '@/components/ui/button';
+import { useEffect } from 'react'; // Added useEffect import
 
 const navItems = [
   { href: '/', label: 'ログ追加', icon: PlusSquare },
@@ -27,11 +29,19 @@ const navItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { username, setUsername } = useUsername();
+  const { isMobile, setOpenMobile } = useSidebar(); // Get isMobile and setOpenMobile
+
+  // Effect to close mobile sidebar on pathname change
+  useEffect(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [pathname, isMobile, setOpenMobile]);
 
   const handleLogout = () => {
     setUsername(null);
     // Optionally, redirect to home or a login page
-    // router.push('/'); 
+    // router.push('/');
   };
 
   return (
