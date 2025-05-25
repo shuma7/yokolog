@@ -41,11 +41,10 @@ export function UserLogTable({ matches, archetypes, onDeleteMatch, onEditRequest
     return archetypes.find(a => a.id === archetypeId);
   };
 
-  const getResultText = (result: "win" | "loss" | "draw") => {
+  const getResultText = (result: "win" | "loss") => { // Removed "draw"
     switch (result) {
       case "win": return "勝利";
       case "loss": return "敗北";
-      case "draw": return "引分";
       default: return result;
     }
   };
@@ -92,8 +91,6 @@ export function UserLogTable({ matches, archetypes, onDeleteMatch, onEditRequest
               ? UNKNOWN_ARCHETYPE_ICON 
               : (opponentArchetype ? CLASS_ICONS[opponentArchetype.gameClass] || GENERIC_ARCHETYPE_ICON : GENERIC_ARCHETYPE_ICON);
 
-            // Numbering: Oldest is 1, newest is totalMatches. Since 'matches' is sorted newest first,
-            // the number for match at 'index' is 'totalMatches - index'.
             const matchNumber = totalMatches - index;
 
             return (
@@ -113,8 +110,8 @@ export function UserLogTable({ matches, archetypes, onDeleteMatch, onEditRequest
                 </TableCell>
                 <TableCell>{getTurnText(match.turn)}</TableCell>
                 <TableCell>
-                  <Badge variant={match.result === 'win' ? 'default' : match.result === 'loss' ? 'destructive' : 'secondary'}
-                         className={`capitalize ${match.result === 'win' ? 'bg-green-600 hover:bg-green-700 text-white' : match.result === 'loss' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`}>
+                  <Badge variant={match.result === 'win' ? 'default' : 'destructive'} // Removed 'secondary' for draw
+                         className={`capitalize ${match.result === 'win' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}>
                     {getResultText(match.result)}
                   </Badge>
                 </TableCell>

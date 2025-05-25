@@ -32,7 +32,7 @@ interface MatchupTableDisplayProps {
 interface MatchupStats {
   wins: number;
   losses: number;
-  draws: number;
+  // draws: number; // Removed draws
   total: number;
   winRate: number;
 }
@@ -51,7 +51,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
       const classA = gameClassMapping[a.gameClass] || a.gameClass;
       const classB = gameClassMapping[b.gameClass] || b.gameClass;
       if (classA === classB) return a.name.localeCompare(b.name, 'ja');
-      return classA.localeCompare(classB, 'ja');
+      return classA.localeCompare(b.name, 'ja');
     }), [allArchetypes, gameClassMapping]);
 
   const userArchetypesForFilter = useMemo(() => {
@@ -83,13 +83,13 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
 
       if (!data[userArch.id]) data[userArch.id] = {};
       if (!data[userArch.id][oppArch.id]) {
-        data[userArch.id][oppArch.id] = { wins: 0, losses: 0, draws: 0, total: 0, winRate: 0 };
+        data[userArch.id][oppArch.id] = { wins: 0, losses: 0, total: 0, winRate: 0 };
       }
 
       data[userArch.id][oppArch.id].total++;
       if (match.result === 'win') data[userArch.id][oppArch.id].wins++;
       else if (match.result === 'loss') data[userArch.id][oppArch.id].losses++;
-      else if (match.result === 'draw') data[userArch.id][oppArch.id].draws++;
+      // No draw counting
     });
 
     Object.values(data).forEach(oppMap => {
@@ -174,11 +174,6 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
         {Object.keys(matchupData).length === 0 && filteredMatches.length > 0 && (
            <p className="text-center text-muted-foreground py-4">現在のフィルター条件に一致する記録済みの対戦データがありません。</p>
         )}
-        {/* This case should be covered by the initial check for matches.length === 0 */}
-        {/* {Object.keys(matchupData).length === 0 && filteredMatches.length === 0 && selectedUserArchetypeIds.length === 0 && selectedOpponentArchetypeIds.length === 0 && (
-           <p className="text-center text-muted-foreground py-4">対戦データがありません。いくつかゲームを記録してください！</p>
-        )} */}
-
 
         <div className="overflow-x-auto rounded-md border">
           <Table className="min-w-full">
@@ -221,12 +216,12 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                                 className={`text-lg font-semibold tabular-nums ${
                                   stats.winRate > 55 ? 'bg-green-600 hover:bg-green-700' : 
                                   stats.winRate < 45 && stats.winRate > 0 ? 'bg-red-600 hover:bg-red-700' : 
-                                  stats.winRate === 0 && (stats.wins + stats.losses > 0) ? 'bg-red-700 hover:bg-red-800' : '' // Specific for 0% WR with games played
+                                  stats.winRate === 0 && (stats.wins + stats.losses > 0) ? 'bg-red-700 hover:bg-red-800' : ''
                                 }`}
                               >
                                 {stats.winRate}%
                               </Badge>
-                              <span className="text-xs text-muted-foreground tabular-nums">({stats.wins}-{stats.losses}{stats.draws > 0 ? `-${stats.draws}`:''})</span>
+                              <span className="text-xs text-muted-foreground tabular-nums">({stats.wins}-{stats.losses})</span>
                             </div>
                           ) : (
                             <span className="text-muted-foreground">-</span>

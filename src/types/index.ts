@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from 'lucide-react';
 
 export type GameClass = 
@@ -5,7 +6,7 @@ export type GameClass =
   | "Swordcraft" 
   | "Runecraft" 
   | "Dragoncraft" 
-  | "Nightmare"  // Shadowcraft and Bloodcraft merged into Nightmare
+  | "Nightmare"
   | "Havencraft" 
   | "Portalcraft";
 
@@ -14,14 +15,12 @@ export interface GameClassDetail {
   label: string;
 }
 
-// This array is used for select options and needs Japanese labels.
-// The `value` must be the English GameClass literal for consistency in data storage.
 export const ALL_GAME_CLASSES: GameClassDetail[] = [
   { value: "Forestcraft", label: "エルフ" },
   { value: "Swordcraft", label: "ロイヤル" },
   { value: "Runecraft", label: "ウィッチ" },
   { value: "Dragoncraft", label: "ドラゴン" },
-  { value: "Nightmare", label: "ナイトメア" }, // New Nightmare class
+  { value: "Nightmare", label: "ナイトメア" },
   { value: "Havencraft", label: "ビショップ" },
   { value: "Portalcraft", label: "ネメシス" },
 ];
@@ -30,7 +29,7 @@ export interface Archetype {
   id: string; 
   name: string; 
   abbreviation: string; 
-  gameClass: GameClass; // Stores the English literal, e.g., "Forestcraft"
+  gameClass: GameClass;
   isDefault?: boolean; 
 }
 
@@ -40,9 +39,9 @@ export interface MatchData {
   userArchetypeId: string; 
   opponentArchetypeId: string; 
   turn: "first" | "second" | "unknown";
-  result: "win" | "loss" | "draw";
+  result: "win" | "loss"; // Removed "draw"
   notes?: string;
-  userId?: string; 
+  // userId?: string; // Temporarily removed for non-auth version
 }
 
 export interface ArchetypeWithIcon extends Archetype {
@@ -54,10 +53,9 @@ export interface ClassIconMapping {
   Swordcraft: LucideIcon;
   Runecraft: LucideIcon;
   Dragoncraft: LucideIcon;
-  Nightmare: LucideIcon; // Nightmare icon
+  Nightmare: LucideIcon;
   Havencraft: LucideIcon;
   Portalcraft: LucideIcon;
 }
 
-// Helper type for mapping GameClass English literals to Japanese names
 export type GameClassNameMap = Record<GameClass, string>;

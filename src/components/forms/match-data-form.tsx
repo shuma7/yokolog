@@ -33,7 +33,7 @@ const matchDataFormSchema = z.object({
   userArchetypeId: z.string().min(1, "自分のデッキタイプを選択してください。"),
   opponentArchetypeId: z.string().min(1, "相手のデッキタイプを選択してください。"),
   turn: z.enum(["first", "second", "unknown"], { required_error: "先攻/後攻を選択してください。" }),
-  result: z.enum(["win", "loss", "draw"], { required_error: "対戦結果を選択してください。" }),
+  result: z.enum(["win", "loss"], { required_error: "対戦結果を選択してください。" }), // Removed "draw"
   notes: z.string().max(500, "メモは500文字以内で入力してください。").optional(),
 });
 
@@ -59,9 +59,8 @@ type UI_STEP =
 const getArchetypeDisplayInfo = (archetypeId: string | undefined, archetypes: Archetype[]) => {
   if (!archetypeId) return null;
   const archetype = archetypes.find(a => a.id === archetypeId);
-  // Display only name, no abbreviation
   if (!archetype) return { name: "不明なデッキタイプ" };
-  return { name: archetype.name };
+  return { name: archetype.name }; // Display only name, no abbreviation
 };
 
 const getTurnDisplay = (turn: "first" | "second" | "unknown" | undefined) => {
@@ -70,12 +69,11 @@ const getTurnDisplay = (turn: "first" | "second" | "unknown" | undefined) => {
   return turn === "first" ? "先攻" : "後攻";
 };
 
-const getResultDisplay = (result: "win" | "loss" | "draw" | undefined) => {
+const getResultDisplay = (result: "win" | "loss" | undefined) => {
   if (!result) return null;
   switch (result) {
     case "win": return "勝利";
     case "loss": return "敗北";
-    case "draw": return "引分";
     default: return null;
   }
 };
@@ -427,7 +425,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                   <FormItem className="space-y-3">
                     <FormLabel className="text-base font-semibold">対戦結果を選んでください</FormLabel>
                     <FormControl>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4"> {/* Changed to grid-cols-2 */}
                         <Button
                           type="button"
                           variant={field.value === 'win' ? 'default' : 'outline'}
@@ -449,17 +447,6 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                           onClick={() => field.onChange('loss')}
                         >
                           敗北
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={field.value === 'draw' ? 'default' : 'outline'}
-                          className={cn(
-                            "h-auto py-4 text-md sm:py-6 sm:text-lg",
-                            field.value === 'draw' && "bg-yellow-500 hover:bg-yellow-600 border-yellow-500 hover:border-yellow-600 text-white"
-                          )}
-                          onClick={() => field.onChange('draw')}
-                        >
-                          引分
                         </Button>
                       </div>
                     </FormControl>
