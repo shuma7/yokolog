@@ -37,7 +37,7 @@ export function useMatchLogger() {
 
   const addMatch = (data: Omit<MatchData, 'id' | 'timestamp' | 'userId'>) => {
     if (!username) {
-      console.error("Cannot add match: username not set.");
+      // console.error("Cannot add match: username not set."); // Removed to prevent console error, handled by caller
       return null;
     }
     const newMatch: MatchData = {
