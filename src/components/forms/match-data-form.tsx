@@ -113,7 +113,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
   const watchedResult = form.watch("result");
 
   const sortedArchetypes = useMemo(() => [...archetypes].sort((a, b) => {
-    if (a.id === 'unknown') return -1; 
+    if (a.id === 'unknown') return -1;
     if (b.id === 'unknown') return 1;
     const classAInfo = ALL_GAME_CLASSES.find(c => c.value === a.gameClass);
     const classBInfo = ALL_GAME_CLASSES.find(c => c.value === b.gameClass);
@@ -180,7 +180,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
           setCurrentUiStep('result');
         } else if (name === 'result' && value.result && currentUiStep === 'result') {
           setCurrentUiStep('notes');
-          requestAnimationFrame(() => { 
+          requestAnimationFrame(() => {
             notesRef.current?.focus();
           });
         }
@@ -232,7 +232,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
   }
 
   const handleBack = () => {
-    if (initialData?.id) return; 
+    if (initialData?.id) return;
 
     let newStep: UI_STEP = currentUiStep;
 
@@ -528,7 +528,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                     <FormControl>
                       <Textarea
                         ref={notesRef}
-                        placeholder="対戦に関する特記事項など..."
+                        placeholder="進行･分岐･反省･愚痴などテキトーに"
                         className="resize-none"
                         {...field}
                         value={field.value || ""}
@@ -558,10 +558,10 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                 <Button
                   type="submit"
                   className={cn(
-                    "font-bold", 
+                    "font-bold",
                     initialData?.id
-                      ? "w-full sm:w-auto text-lg py-3" 
-                      : "w-full text-3xl py-6"   
+                      ? "w-full sm:w-auto text-lg py-3"
+                      : "w-full text-3xl py-6"
                   )}
                 >
                   {initialData?.id ? (submitButtonText || "対戦情報を更新") : "NEXT!"}
@@ -574,4 +574,3 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
     </Card>
   );
 }
-
