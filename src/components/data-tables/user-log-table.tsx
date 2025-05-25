@@ -77,7 +77,7 @@ export function UserLogTable({
 
   // Define styles based on isMinimal prop
   const cellPaddingY = isMinimal ? 'py-0' : 'py-0';
-  const cellPaddingX = isMinimal ? 'px-1' : 'px-2'; // Personal log keeps px-2, Minimal uses px-1
+  const cellPaddingX = isMinimal ? 'px-1' : 'px-2'; 
   
   const fontSize = isMinimal ? 'text-[10px]' : 'text-sm';
   const headerHeight = isMinimal ? 'h-auto' : 'h-auto';
@@ -85,20 +85,20 @@ export function UserLogTable({
   const headerPaddingX = isMinimal ? 'px-1' : 'px-2';
   const headerFontSize = isMinimal ? 'text-[10px]' : 'text-sm';
 
-  const cellIconSize = isMinimal ? 'h-3 w-3' : 'h-3 w-3';
-  const actionIconSize = isMinimal ? 'h-3 w-3' : 'h-3 w-3';
+  const cellIconSize = isMinimal ? 'h-3 w-3' : 'h-3 w-3'; // Personal log size
+  const actionIconSize = isMinimal ? 'h-3 w-3' : 'h-3 w-3'; // Personal log size
 
   const actionButtonBaseClasses = "variant=\"ghost\"";
   const actionButtonSizeClasses = isMinimal
-    ? "p-0.5 h-5 w-5 flex items-center justify-center"
-    : "p-0.5 h-5 w-5 flex items-center justify-center";
+    ? "p-0.5 h-5 w-5 flex items-center justify-center" 
+    : "p-0.5 h-5 w-5 flex items-center justify-center"; // Personal log size
 
   const badgeBaseClasses = "capitalize";
   const badgeStyleClasses = isMinimal
     ? "px-1 py-0 text-[9px] leading-tight"
-    : "px-1.5 py-0 text-[11px] leading-tight";
+    : "px-1.5 py-0 text-[11px] leading-tight"; // Personal log size
 
-  const tableCellTextClasses = isMinimal ? "" : "leading-tight";
+  const tableCellTextClasses = isMinimal ? "" : "leading-tight"; // Personal log style
 
   return (
     <TooltipProvider>
@@ -107,11 +107,11 @@ export function UserLogTable({
           <TableHeader>
             <TableRow>
               <TableHead className={cn("sticky top-0 bg-card z-10 w-[40px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>番号</TableHead>
-              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[80px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>自分のデッキ</TableHead>
-              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[80px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>相手のデッキ</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[70px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>自分のデッキ</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[70px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>相手のデッキ</TableHead>
               <TableHead className={cn("sticky top-0 bg-card z-10 w-[50px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>先後</TableHead>
               <TableHead className={cn("sticky top-0 bg-card z-10 w-[60px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>勝敗</TableHead>
-              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[400px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>メモ</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[420px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>メモ</TableHead>
               <TableHead className={cn("sticky top-0 bg-card z-10 text-right w-[70px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>操作</TableHead>
             </TableRow>
           </TableHeader>
@@ -153,7 +153,7 @@ export function UserLogTable({
                       {getResultText(match.result)}
                     </Badge>
                   </TableCell>
-                  <TableCell className={cn("max-w-[400px] truncate", cellPaddingY, cellPaddingX, tableCellTextClasses)} title={match.notes || undefined}>{match.notes || '-'}</TableCell>
+                  <TableCell className={cn("max-w-[420px] truncate", cellPaddingY, cellPaddingX, tableCellTextClasses)} title={match.notes || undefined}>{match.notes || '-'}</TableCell>
                   <TableCell className={cn("text-right", cellPaddingY, cellPaddingX, tableCellTextClasses)}>
                     {isReadOnly ? (
                        <Tooltip>
