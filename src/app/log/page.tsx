@@ -13,7 +13,7 @@ import Link from "next/link";
 import { PlusCircle } from "lucide-react";
 import { GAME_CLASS_EN_TO_JP } from "@/lib/game-data";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { MatchData } from "@/types";
+import type { MatchData, GameClassNameMap } from "@/types"; // Removed MatchFormValues as it's not directly used here for new matches
 import { MatchDataForm, type MatchFormValues } from "@/components/forms/match-data-form";
 import {
   Dialog,
@@ -32,7 +32,8 @@ export default function PersonalLogPage() {
   const [editingMatch, setEditingMatch] = useState<MatchData | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  // Sort matches once: newest first for display
+  const gameClassMapping: GameClassNameMap = GAME_CLASS_EN_TO_JP;
+
   const sortedMatchesForDisplay = useMemo(() => 
     [...matches].sort((a, b) => b.timestamp - a.timestamp), 
     [matches]
@@ -63,7 +64,7 @@ export default function PersonalLogPage() {
     if (editingMatch) {
       try {
         const updatedMatchData: MatchData = {
-          ...editingMatch, // Retains id, timestamp, and potentially userId
+          ...editingMatch,
           userArchetypeId: data.userArchetypeId,
           opponentArchetypeId: data.opponentArchetypeId,
           turn: data.turn,
@@ -94,7 +95,7 @@ export default function PersonalLogPage() {
         title="個人ログ"
         actions={
           <Button asChild>
-            <Link href="/matches/new">
+            <Link href="/"> {/* Changed href to / */}
               <PlusCircle className="mr-2 h-4 w-4" /> 新規対戦を追加
             </Link>
           </Button>
@@ -113,11 +114,11 @@ export default function PersonalLogPage() {
                 archetypes={archetypes}
                 onDeleteMatch={handleDeleteMatch}
                 onEditRequest={handleEditRequest}
-                gameClassMapping={GAME_CLASS_EN_TO_JP}
+                gameClassMapping={gameClassMapping}
               />
             </TabsContent>
             <TabsContent value="summary-data" className="mt-6">
-              <AggregatedStatsDisplay matches={matches} archetypes={archetypes} gameClassMapping={GAME_CLASS_EN_TO_JP} />
+              <AggregatedStatsDisplay matches={matches} archetypes={archetypes} gameClassMapping={gameClassMapping} />
             </TabsContent>
           </Tabs>
         </div>
@@ -141,7 +142,7 @@ export default function PersonalLogPage() {
               archetypes={archetypes}
               onSubmit={handleUpdateMatchSubmit}
               initialData={editingMatch}
-              gameClassMapping={GAME_CLASS_EN_TO_JP}
+              gameClassMapping={gameClassMapping}
               submitButtonText="対戦情報を更新"
             />
              <DialogFooter>
