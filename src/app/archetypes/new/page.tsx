@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { MainHeader } from "@/components/layout/main-header";
 import { useArchetypeManager } from "@/hooks/use-archetype-manager";
 import { useToast } from "@/hooks/use-toast";
-import type { Archetype, GameClass, GameClassDetail, MatchData } from "@/types";
+import type { Archetype, GameClass } from "@/types"; // Removed GameClassDetail as it's not directly used here
 import { ALL_GAME_CLASSES } from "@/types";
 import { ArchetypeForm } from "@/components/forms/archetype-form";
 import {
@@ -23,7 +23,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TableCaption,
 } from "@/components/ui/table";
 import {
   AlertDialog,
@@ -37,7 +36,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit3, Trash2 } from "lucide-react";
-import { CLASS_ICONS, formatArchetypeNameWithSuffix, UNKNOWN_ARCHETYPE_ICON } from "@/lib/game-data";
+import { CLASS_ICONS, formatArchetypeNameWithSuffix, UNKNOWN_ARCHETYPE_ICON, getJapaneseClassNameFromValue } from "@/lib/game-data";
+import type { MatchData } from "@/types";
+
 
 export default function ManageArchetypesPage() {
   const { archetypes, addArchetype, updateArchetype, deleteArchetype } = useArchetypeManager();
@@ -70,7 +71,7 @@ export default function ManageArchetypesPage() {
     }
     setAllMatchesForCounts(collectedMatches);
     setDiscoveredUserKeys(userLogKeys);
-  }, []); // Load once on mount
+  }, []); 
 
   const handleAddNew = () => {
     setCurrentArchetype(null);
@@ -93,8 +94,7 @@ export default function ManageArchetypesPage() {
     }
     try {
       const unknownArchetypeId = archetypes.find(a => a.id === 'unknown')?.id || 'unknown';
-      let updatedMatchesGlobal: MatchData[] = [];
-
+      
       discoveredUserKeys.forEach(userKey => {
         const item = localStorage.getItem(userKey);
         let userMatches: MatchData[] = item ? JSON.parse(item) : [];
@@ -120,18 +120,10 @@ export default function ManageArchetypesPage() {
         if (userMatchesChanged) {
           localStorage.setItem(userKey, JSON.stringify(updatedUserMatches));
         }
-        // Collect all matches (whether updated or not) for the new global state
-        // This simplified version assumes we re-aggregate from the modified localStorage items
-        // A more direct way would be to only push updatedUserMatches, but for simplicity we'll re-aggregate later if needed, or accept this current state.
       });
       
-      // After updating all user logs, delete the archetype definition
       deleteArchetype(archetypeToDelete.id);
 
-      // Re-fetch all matches to update counts, or derive from updatedUserMatches if constructed carefully
-      // For simplicity, let's re-trigger the load effect or manually filter the current allMatchesForCounts
-      // Triggering a re-load by changing a dependency or similar is cleaner
-      // For now, we filter current state as a direct update:
       const newAllMatchesForCounts = allMatchesForCounts.map(match => {
         let newMatch = { ...match };
         if (match.userArchetypeId === archetypeToDelete.id) newMatch.userArchetypeId = unknownArchetypeId;
@@ -153,13 +145,12 @@ export default function ManageArchetypesPage() {
     }
   };
 
-  const handleSubmitForm = (data: { name: string; abbreviation: string; gameClass: GameClass }) => {
+  const handleSubmitForm = (data: { name: string; gameClass: GameClass }) => {
     try {
       if (currentArchetype && currentArchetype.id) {
         const updated: Archetype = {
             ...currentArchetype, 
             name: data.name,
-            abbreviation: data.abbreviation,
             gameClass: data.gameClass,
         } as Archetype; 
         updateArchetype(updated);
@@ -168,7 +159,7 @@ export default function ManageArchetypesPage() {
           description: `「${formatArchetypeNameWithSuffix(updated)}」を更新しました。`,
         });
       } else {
-        const newArchetype = addArchetype(data.name, data.abbreviation, data.gameClass);
+        const newArchetype = addArchetype(data.name, data.gameClass);
         toast({
           title: "追加完了",
           description: `「${formatArchetypeNameWithSuffix(newArchetype)}」を追加しました。`,
@@ -198,11 +189,6 @@ export default function ManageArchetypesPage() {
 
   const getMatchCount = (archetypeId: string) => {
     return allMatchesForCounts.filter(match => match.userArchetypeId === archetypeId || match.opponentArchetypeId === archetypeId).length;
-  };
-
-  const getJapaneseClassName = (gameClassValue: GameClass): string => {
-    const classDetail = ALL_GAME_CLASSES.find(gc => gc.value === gameClassValue);
-    return classDetail ? classDetail.label : gameClassValue;
   };
 
   return (
@@ -270,7 +256,7 @@ export default function ManageArchetypesPage() {
                                   <AlertDialogTitle>本当によろしいですか？</AlertDialogTitle>
                                   <AlertDialogDescription>
                                     この操作は元に戻せません。
-                                    「{getJapaneseClassName(archetype.gameClass)}」クラスのデッキタイプ
+                                    「{getJapaneseClassNameFromValue(archetype.gameClass)}」クラスのデッキタイプ
                                     「{formatArchetypeNameWithSuffix(archetype)}」を完全に削除します。
                                     関連する全ユーザーの対戦記録において、このデッキタイプは「不明な相手」として扱われるようになります。
                                   </AlertDialogDescription>
@@ -378,4 +364,3 @@ export default function ManageArchetypesPage() {
     </div>
   );
 }
-    

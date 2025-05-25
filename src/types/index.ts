@@ -28,7 +28,6 @@ export const ALL_GAME_CLASSES: GameClassDetail[] = [
 export interface Archetype {
   id: string; 
   name: string; 
-  abbreviation: string; 
   gameClass: GameClass;
   isDefault?: boolean; 
 }
@@ -41,7 +40,7 @@ export interface MatchData {
   turn: "first" | "second" | "unknown";
   result: "win" | "loss";
   notes?: string;
-  userId: string; // Added userId, it's now required
+  userId: string; 
 }
 
 export interface ArchetypeWithIcon extends Archetype {
@@ -59,3 +58,4 @@ export interface ClassIconMapping {
 }
 
 export type GameClassNameMap = Record<GameClass, string>;
+
