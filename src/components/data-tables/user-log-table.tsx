@@ -107,11 +107,11 @@ export function UserLogTable({
           <TableHeader>
             <TableRow>
               <TableHead className={cn("sticky top-0 bg-card z-10 w-[40px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>番号</TableHead>
-              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[50px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>自分のデッキ</TableHead>
-              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[50px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>相手のデッキ</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[40px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>自分のデッキ</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[40px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>相手のデッキ</TableHead>
               <TableHead className={cn("sticky top-0 bg-card z-10 w-[50px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>先後</TableHead>
               <TableHead className={cn("sticky top-0 bg-card z-10 w-[60px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>勝敗</TableHead>
-              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[460px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>メモ</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[480px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>メモ</TableHead>
               <TableHead className={cn("sticky top-0 bg-card z-10 text-right w-[70px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>操作</TableHead>
             </TableRow>
           </TableHeader>
@@ -153,7 +153,7 @@ export function UserLogTable({
                       {getResultText(match.result)}
                     </Badge>
                   </TableCell>
-                  <TableCell className={cn("max-w-[460px] truncate", cellPaddingY, cellPaddingX, tableCellTextClasses)} title={match.notes || undefined}>{match.notes || '-'}</TableCell>
+                  <TableCell className={cn("max-w-[480px] truncate", cellPaddingY, cellPaddingX, tableCellTextClasses)} title={match.notes || undefined}>{match.notes || '-'}</TableCell>
                   <TableCell className={cn("text-right", cellPaddingY, cellPaddingX, tableCellTextClasses)}>
                     {isReadOnly ? (
                        <Tooltip>
