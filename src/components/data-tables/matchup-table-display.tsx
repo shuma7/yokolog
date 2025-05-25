@@ -3,6 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import type { MatchData, Archetype, GameClass, GameClassNameMap } from "@/types";
+import { ALL_GAME_CLASSES } from '@/types'; // Import ALL_GAME_CLASSES
 import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON, formatArchetypeNameWithSuffix } from "@/lib/game-data";
 import {
   Table,
@@ -64,15 +65,28 @@ const calculateRawStats = (items: Array<{ result: 'win' | 'loss' }>): TurnSpecif
 export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }: MatchupTableDisplayProps) {
   const [selectedArchetypeIds, setSelectedArchetypeIds] = useState<string[]>([]);
 
-  const sortedArchetypes = useMemo(() =>
-    [...allArchetypes].sort((a, b) => {
-      if (a.id === 'unknown') return -1;
-      if (b.id === 'unknown') return 1;
-      const classA = gameClassMapping[a.gameClass] || a.gameClass;
-      const classB = gameClassMapping[b.gameClass] || b.gameClass;
-      if (classA === classB) return a.name.localeCompare(b.name, 'ja');
-      return classA.localeCompare(classB, 'ja');
-    }), [allArchetypes, gameClassMapping]);
+  const sortedArchetypes = useMemo(() => {
+    const getClassOrder = (gameClass: GameClass): number => {
+      const index = ALL_GAME_CLASSES.findIndex(gc => gc.value === gameClass);
+      return index === -1 ? ALL_GAME_CLASSES.length : index; // Put unknown classes last if any
+    };
+
+    return [...allArchetypes].sort((a, b) => {
+      // Sort "unknown" archetype to the very end
+      if (a.id === 'unknown' && b.id !== 'unknown') return 1;
+      if (a.id !== 'unknown' && b.id === 'unknown') return -1;
+      if (a.id === 'unknown' && b.id === 'unknown') return 0; // Should not happen if IDs are unique
+
+      const classOrderA = getClassOrder(a.gameClass);
+      const classOrderB = getClassOrder(b.gameClass);
+
+      if (classOrderA !== classOrderB) {
+        return classOrderA - classOrderB;
+      }
+      // If same class, sort by name
+      return a.name.localeCompare(b.name, 'ja');
+    });
+  }, [allArchetypes]);
 
   const availableArchetypesForFilter = useMemo(() => {
     const idsInMatches = new Set<string>();
@@ -92,6 +106,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
   const displayArchetypes = useMemo(() => {
     return availableArchetypesForFilter
       .filter(a => selectedArchetypeIds.includes(a.id))
+      // Re-sort based on the original sortedArchetypes list to maintain consistent order
       .sort((a,b) => sortedArchetypes.findIndex(s => s.id === a.id) - sortedArchetypes.findIndex(s => s.id === b.id));
   }, [availableArchetypesForFilter, selectedArchetypeIds, sortedArchetypes]);
 
@@ -363,4 +378,6 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
     </Card>
   );
 }
+    
+
     
