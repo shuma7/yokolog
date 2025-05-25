@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, ListChecks, PlusSquare, BotMessageSquare } from 'lucide-react';
+import { BarChart3, ListChecks, PlusSquare, BotMessageSquare, Users } from 'lucide-react'; // Added Users
 import {
   Sidebar,
   SidebarHeader,
@@ -15,10 +15,11 @@ import {
 } from '@/components/ui/sidebar'; 
 
 const navItems = [
-  { href: '/', label: '対戦追加', icon: PlusSquare }, // Changed href to / and moved to top
+  { href: '/', label: '対戦追加', icon: PlusSquare },
   { href: '/log', label: '個人ログ', icon: ListChecks },
   { href: '/matchups', label: '相性表', icon: BarChart3 },
-  { href: '/archetypes/new', label: 'デッキタイプ追加', icon: BotMessageSquare },
+  { href: '/archetypes/new', label: 'デッキタイプ管理', icon: BotMessageSquare }, // Changed label
+  { href: '/members', label: 'メンバーデータ', icon: Users }, // Added Members page
 ];
 
 export function AppSidebar() {
@@ -63,3 +64,4 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+
