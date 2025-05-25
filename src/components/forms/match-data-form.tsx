@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { Archetype, MatchData, GameClassNameMap, GameClass } from "@/types";
 import { ALL_GAME_CLASSES } from '@/types';
-import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON, formatArchetypeNameWithSuffix, GAME_CLASS_SUFFIX_MAP } from '@/lib/game-data';
+import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON, formatArchetypeNameWithSuffix } from '@/lib/game-data';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -113,15 +113,18 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
   const watchedResult = form.watch("result");
 
   const sortedArchetypes = useMemo(() => [...archetypes].sort((a, b) => {
-    if (a.id === 'unknown') return -1;
+    if (a.id === 'unknown') return -1; // 'unknown' comes first for selection, but should be last in management
     if (b.id === 'unknown') return 1;
-    const classA = gameClassMapping[a.gameClass] || a.gameClass;
-    const classB = gameClassMapping[b.gameClass] || b.gameClass;
-    if (classA === classB) {
-      return a.name.localeCompare(b.name, 'ja');
+    const classAInfo = ALL_GAME_CLASSES.find(c => c.value === a.gameClass);
+    const classBInfo = ALL_GAME_CLASSES.find(c => c.value === b.gameClass);
+    const classAOrder = classAInfo ? ALL_GAME_CLASSES.indexOf(classAInfo) : ALL_GAME_CLASSES.length;
+    const classBOrder = classBInfo ? ALL_GAME_CLASSES.indexOf(classBInfo) : ALL_GAME_CLASSES.length;
+
+    if (classAOrder !== classBOrder) {
+        return classAOrder - classBOrder;
     }
-    return classA.localeCompare(classB, 'ja');
-  }), [archetypes, gameClassMapping]);
+    return a.name.localeCompare(b.name, 'ja');
+  }), [archetypes]);
 
   const filteredUserArchetypes = useMemo(() => {
     if (!userSelectedClass) return [];
@@ -177,7 +180,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
           setCurrentUiStep('result');
         } else if (name === 'result' && value.result && currentUiStep === 'result') {
           setCurrentUiStep('notes');
-          requestAnimationFrame(() => { // Ensure DOM is updated before focusing
+          requestAnimationFrame(() => { 
             notesRef.current?.focus();
           });
         }
@@ -214,7 +217,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
   }
 
   const handleBack = () => {
-    if (initialData?.id) return; // Back button is not for edit mode
+    if (initialData?.id) return; 
 
     let newStep: UI_STEP = currentUiStep;
 
@@ -420,8 +423,8 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                           type="button"
                           variant={field.value === 'first' ? 'default' : 'outline'}
                           className={cn(
-                            "h-auto py-4 text-md sm:py-6 sm:text-lg",
-                            field.value === 'first' && "bg-pink-500 hover:bg-pink-600 border-pink-500 hover:border-pink-600 text-white"
+                            "h-auto py-4 text-md sm:py-6 sm:text-lg font-semibold",
+                            field.value === 'first' ? "bg-pink-500 hover:bg-pink-600 border-pink-500 hover:border-pink-600 text-white" : "border-muted-foreground/50"
                           )}
                           onClick={() => field.onChange('first')}
                         >
@@ -431,8 +434,8 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                           type="button"
                           variant={field.value === 'second' ? 'default' : 'outline'}
                           className={cn(
-                            "h-auto py-4 text-md sm:py-6 sm:text-lg",
-                            field.value === 'second' && "bg-blue-500 hover:bg-blue-600 border-blue-500 hover:border-blue-600 text-white"
+                            "h-auto py-4 text-md sm:py-6 sm:text-lg font-semibold",
+                            field.value === 'second' ? "bg-blue-500 hover:bg-blue-600 border-blue-500 hover:border-blue-600 text-white" : "border-muted-foreground/50"
                           )}
                           onClick={() => field.onChange('second')}
                         >
@@ -459,8 +462,8 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                           type="button"
                           variant={field.value === 'win' ? 'default' : 'outline'}
                           className={cn(
-                            "h-auto py-4 text-md sm:py-6 sm:text-lg",
-                            field.value === 'win' && "bg-lime-500 hover:bg-lime-600 border-lime-500 hover:border-lime-600 text-white"
+                            "h-auto py-4 text-md sm:py-6 sm:text-lg font-semibold",
+                             field.value === 'win' ? "bg-lime-500 hover:bg-lime-600 border-lime-500 hover:border-lime-600 text-white" : "border-muted-foreground/50"
                           )}
                           onClick={() => field.onChange('win')}
                         >
@@ -470,8 +473,8 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                           type="button"
                           variant={field.value === 'loss' ? 'default' : 'outline'}
                           className={cn(
-                            "h-auto py-4 text-md sm:py-6 sm:text-lg",
-                            field.value === 'loss' && "bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700 text-white"
+                            "h-auto py-4 text-md sm:py-6 sm:text-lg font-semibold",
+                            field.value === 'loss' ? "bg-red-600 hover:bg-red-700 border-red-600 hover:border-red-700 text-white" : "border-muted-foreground/50"
                           )}
                           onClick={() => field.onChange('loss')}
                         >
@@ -507,7 +510,6 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
               />
             )}
 
-            {/* Action Buttons Area */}
             <div className={cn(
               "flex flex-col-reverse sm:flex-row gap-3 pt-4",
               (currentUiStep !== 'userClass' && !initialData?.id && showNotesAndSubmit) ? 'sm:justify-between' : 'sm:justify-end'
@@ -525,7 +527,12 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
               {showNotesAndSubmit && (
                 <Button
                   type="submit"
-                  className="w-full sm:w-auto text-lg py-3"
+                  className={cn(
+                    "font-bold", // Common style for both
+                    initialData?.id
+                      ? "w-full sm:w-auto text-lg py-3" // Style for "Update" button
+                      : "w-full text-3xl py-6"   // Style for "NEXT!" button
+                  )}
                 >
                   {initialData?.id ? (submitButtonText || "対戦情報を更新") : "NEXT!"}
                 </Button>
