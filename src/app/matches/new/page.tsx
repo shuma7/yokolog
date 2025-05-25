@@ -15,15 +15,19 @@ export default function AddMatchPage() {
   const handleSubmit = (data: MatchFormValues) => {
     try {
       const newMatch = addMatch(data);
-      if (newMatch) {
+      // Since username check is removed from addMatch, it should always return a match object now
+      // unless a new failure condition is added to addMatch later.
+      if (newMatch) { 
         toast({
           title: "対戦記録完了",
           description: "対戦が正常に記録されました。",
         });
       } else {
+        // This else block might become unreachable if addMatch always succeeds.
+        // Kept for robustness in case addMatch is modified to have other failure modes.
          toast({
           title: "エラー",
-          description: "対戦を記録できませんでした。ユーザー名が設定されているか確認してください。",
+          description: "対戦を記録できませんでした。入力内容を確認してください。",
           variant: "destructive",
         });
       }

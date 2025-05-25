@@ -44,7 +44,7 @@ export interface MatchData {
   turn: "first" | "second" | "unknown";
   result: "win" | "loss" | "draw";
   notes?: string;
-  userId: string; 
+  userId?: string; // Made userId optional
 }
 
 export interface ArchetypeWithIcon extends Archetype {
@@ -64,3 +64,4 @@ export interface ClassIconMapping {
 
 // Helper type for mapping GameClass English literals to Japanese names
 export type GameClassNameMap = Record<GameClass, string>;
+

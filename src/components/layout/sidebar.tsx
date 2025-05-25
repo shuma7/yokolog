@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, ListChecks, PlusSquare, BotMessageSquare } from 'lucide-react'; // Home, Users, Settings removed
+import { BarChart3, ListChecks, PlusSquare, BotMessageSquare } from 'lucide-react';
 import {
   Sidebar,
   SidebarHeader,
@@ -12,9 +12,9 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar'; 
-import { Button } from '@/components/ui/button';
-import { useUsername } from '@/hooks/use-username';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+// import { Button } from '@/components/ui/button'; // Button no longer used here
+// import { useUsername } from '@/hooks/use-username'; // Removed useUsername
+// import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; // Avatar no longer used here
 
 const navItems = [
   { href: '/log', label: '対戦記録', icon: ListChecks },
@@ -25,12 +25,12 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { username, setUsername } = useUsername();
+  // const { username, setUsername } = useUsername(); // Removed
 
-  const getInitials = (name: string | null) => {
-    if (!name) return '？';
-    return name.substring(0, 2).toUpperCase();
-  };
+  // const getInitials = (name: string | null) => { // Removed
+  //   if (!name) return '？';
+  //   return name.substring(0, 2).toUpperCase();
+  // };
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -62,9 +62,10 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2 mt-auto border-t border-sidebar-border">
-        <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center p-2">
+        {/* Removed user info block */}
+        {/* <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center p-2">
           <Avatar className="h-8 w-8 group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7">
-            <AvatarImage src={`https://placehold.co/40x40.png?text=${getInitials(username)}`} alt={username || 'ユーザー'} data-ai-hint="avatar user" />
+            <AvatarImage src={`https://placehold.co/40x40.png?text=${getInitials(username)}`} alt={username || 'ユーザー'} />
             <AvatarFallback>{getInitials(username)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
@@ -73,6 +74,9 @@ export function AppSidebar() {
               ユーザー変更
             </Button>
           </div>
+        </div> */}
+         <div className="flex items-center justify-center p-2 group-data-[collapsible=icon]:justify-center">
+            <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">対戦記録アプリ</span>
         </div>
       </SidebarFooter>
     </Sidebar>
