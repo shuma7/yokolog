@@ -3,22 +3,49 @@
 
 import type { MatchData, Archetype, GameClass, GameClassNameMap } from "@/types";
 import { ALL_GAME_CLASSES } from "@/types";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON, formatArchetypeNameWithSuffix } from "@/lib/game-data";
 import { useMemo } from "react";
 
-interface UserWinDetail {
+interface UserWinEntry {
   username: string;
   wins: number;
+  rank: number;
 }
 
-interface RankedItemWithUserWins {
-  id: string; // Archetype ID or Class Value
-  name: string; // Archetype Name or Class Label
-  totalWins: number;
-  userWins: UserWinDetail[];
-  icon?: React.ElementType;
-  gameClass?: GameClass; // Only for archetype ranking
+interface RankingDisplayProps {
+  title: string;
+  icon: React.ElementType;
+  userRankings: UserWinEntry[];
+}
+
+function RankingSection({ title, icon: Icon, userRankings }: RankingDisplayProps) {
+  if (userRankings.length === 0) {
+    return null; // Don't render if no one has wins for this item
+  }
+  return (
+    <Card className="mb-6 shadow-md">
+      <CardHeader className="pb-3 pt-4">
+        <CardTitle className="flex items-center text-lg font-semibold">
+          {Icon && <Icon className="mr-2 h-5 w-5 text-primary" />}
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ol className="space-y-1.5 text-sm">
+          {userRankings.map((r) => (
+            <li key={r.username} className="flex justify-between">
+              <span>
+                <span className="inline-block w-6 text-right mr-1 font-medium">{r.rank}.</span>
+                {r.username}
+              </span>
+              <span className="font-semibold">{r.wins}勝</span>
+            </li>
+          ))}
+        </ol>
+      </CardContent>
+    </Card>
+  );
 }
 
 interface MemberVictoryRankingsProps {
@@ -29,86 +56,77 @@ interface MemberVictoryRankingsProps {
 
 export function MemberVictoryRankings({ matches, allArchetypes, gameClassMapping }: MemberVictoryRankingsProps) {
 
-  const archetypeRanking = useMemo(() => {
-    const winsByArchetype: Record<string, { archetype: Archetype; userWins: Record<string, number>; totalWins: number }> = {};
+  const assignRanks = (userWins: {username: string, wins: number}[]) => {
+    const rankedList: UserWinEntry[] = [];
+    if (userWins.length === 0) return rankedList;
 
-    matches.forEach(match => {
-      if (match.result === 'win' && match.userId) {
-        const userArchetype = allArchetypes.find(a => a.id === match.userArchetypeId);
-        if (userArchetype) {
-          if (!winsByArchetype[userArchetype.id]) {
-            winsByArchetype[userArchetype.id] = { archetype: userArchetype, userWins: {}, totalWins: 0 };
-          }
-          winsByArchetype[userArchetype.id].userWins[match.userId] = (winsByArchetype[userArchetype.id].userWins[match.userId] || 0) + 1;
-          winsByArchetype[userArchetype.id].totalWins++;
-        }
+    let currentRank = 0;
+    let lastWins = -1;
+    userWins.forEach((userWin, index) => {
+      if (userWin.wins !== lastWins) {
+        currentRank = index + 1;
+        lastWins = userWin.wins;
       }
+      rankedList.push({ ...userWin, rank: currentRank });
     });
+    return rankedList;
+  };
 
-    return Object.values(winsByArchetype)
-      .filter(item => item.totalWins > 0)
-      .map(item => {
-        const Icon = item.archetype.id === 'unknown' ? UNKNOWN_ARCHETYPE_ICON : CLASS_ICONS[item.archetype.gameClass] || GENERIC_ARCHETYPE_ICON;
-        const userWinDetails: UserWinDetail[] = Object.entries(item.userWins)
-          .map(([username, wins]) => ({ username, wins }))
-          .sort((a, b) => b.wins - a.wins);
-        
-        return {
-          id: item.archetype.id,
-          name: formatArchetypeNameWithSuffix(item.archetype),
-          totalWins: item.totalWins,
-          userWins: userWinDetails,
-          icon: Icon,
-          gameClass: item.archetype.gameClass,
-        };
-      })
-      .sort((a, b) => {
-        if (b.totalWins !== a.totalWins) {
-          return b.totalWins - a.totalWins;
+  const classRankingsData = useMemo(() => {
+    return ALL_GAME_CLASSES.map(gc => {
+      const winsByClassForUser: Record<string, number> = {};
+      matches.forEach(match => {
+        if (match.result === 'win' && match.userId) {
+          const userArchetype = allArchetypes.find(a => a.id === match.userArchetypeId);
+          if (userArchetype && userArchetype.gameClass === gc.value) {
+            winsByClassForUser[match.userId] = (winsByClassForUser[match.userId] || 0) + 1;
+          }
         }
-        // Ensure gameClass exists before accessing it for sorting
-        const classA = a.gameClass ? (gameClassMapping[a.gameClass] || a.gameClass) : '';
-        const classB = b.gameClass ? (gameClassMapping[b.gameClass] || b.gameClass) : '';
-        
-        if (classA !== classB) {
-          return classA.localeCompare(classB, 'ja');
-        }
-        return a.name.localeCompare(b.name, 'ja');
       });
+
+      const sortedUserWins = Object.entries(winsByClassForUser)
+        .map(([username, wins]) => ({ username, wins }))
+        .filter(item => item.wins > 0)
+        .sort((a, b) => b.wins - a.wins);
+      
+      if (sortedUserWins.length === 0) return null;
+
+      return {
+        title: `${gameClassMapping[gc.value] || gc.value}ランキング`,
+        icon: CLASS_ICONS[gc.value] || GENERIC_ARCHETYPE_ICON,
+        userRankings: assignRanks(sortedUserWins),
+      };
+    }).filter(Boolean) as RankingDisplayProps[];
   }, [matches, allArchetypes, gameClassMapping]);
 
-  const classRanking = useMemo(() => {
-    const winsByClass: Record<GameClass, { userWins: Record<string, number>; totalWins: number }> = {} as Record<GameClass, { userWins: Record<string, number>; totalWins: number }>;
-    ALL_GAME_CLASSES.forEach(gc => winsByClass[gc.value] = { userWins: {}, totalWins: 0 });
+  const archetypeRankingsData = useMemo(() => {
+    return allArchetypes
+      .filter(arch => arch.id !== 'unknown') // Do not rank the 'unknown' archetype
+      .map(arch => {
+        const winsByArchetypeForUser: Record<string, number> = {};
+        matches.forEach(match => {
+          if (match.result === 'win' && match.userId && match.userArchetypeId === arch.id) {
+            winsByArchetypeForUser[match.userId] = (winsByArchetypeForUser[match.userId] || 0) + 1;
+          }
+        });
 
-    matches.forEach(match => {
-      if (match.result === 'win' && match.userId) {
-        const userArchetype = allArchetypes.find(a => a.id === match.userArchetypeId);
-        if (userArchetype && userArchetype.gameClass && winsByClass[userArchetype.gameClass]) {
-          winsByClass[userArchetype.gameClass].userWins[match.userId] = (winsByClass[userArchetype.gameClass].userWins[match.userId] || 0) + 1;
-          winsByClass[userArchetype.gameClass].totalWins++;
-        }
-      }
-    });
-
-    return ALL_GAME_CLASSES
-      .map(gc => {
-        const Icon = CLASS_ICONS[gc.value] || GENERIC_ARCHETYPE_ICON;
-        const userWinDetails: UserWinDetail[] = Object.entries(winsByClass[gc.value].userWins)
+        const sortedUserWins = Object.entries(winsByArchetypeForUser)
           .map(([username, wins]) => ({ username, wins }))
+          .filter(item => item.wins > 0)
           .sort((a, b) => b.wins - a.wins);
 
+        if (sortedUserWins.length === 0) return null;
+        
+        const Icon = CLASS_ICONS[arch.gameClass] || GENERIC_ARCHETYPE_ICON;
         return {
-          id: gc.value,
-          name: gc.label,
-          totalWins: winsByClass[gc.value].totalWins,
-          userWins: userWinDetails,
+          title: `${formatArchetypeNameWithSuffix(arch)}ランキング`,
           icon: Icon,
+          userRankings: assignRanks(sortedUserWins),
         };
       })
-      .filter(item => item.totalWins > 0)
-      .sort((a, b) => b.totalWins - a.totalWins);
+      .filter(Boolean) as RankingDisplayProps[];
   }, [matches, allArchetypes]);
+
 
   if (matches.length === 0) {
     return (
@@ -117,72 +135,38 @@ export function MemberVictoryRankings({ matches, allArchetypes, gameClassMapping
       </p>
     );
   }
-  
-  const formatUserWins = (userWins: UserWinDetail[]) => {
-    if (userWins.length === 0) return "-";
-    return userWins.map(uw => `${uw.username}: ${uw.wins}勝`).join(', ');
-  };
 
-  const renderRankingTable = (title: string, description: string, rankingData: RankedItemWithUserWins[], type: 'archetype' | 'class') => (
-    <div className="mb-6">
-      <h3 className="text-lg font-semibold mb-1">{title}</h3>
-      <p className="text-sm text-muted-foreground mb-3">{description}</p>
-      {rankingData.length === 0 ? (
-        <p className="text-center text-muted-foreground py-4">
-          {type === 'archetype' ? "勝利記録のあるデッキタイプがありません。" : "勝利記録のあるクラスがありません。"}
-        </p>
-      ) : (
-        <div className="rounded-md border max-h-[400px] overflow-y-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="sticky top-0 bg-card w-[60px] text-center">順位</TableHead>
-                <TableHead className="sticky top-0 bg-card min-w-[150px]">{type === 'archetype' ? "デッキタイプ名" : "クラス名"}</TableHead>
-                <TableHead className="sticky top-0 bg-card min-w-[200px]">ユーザー別勝利数</TableHead>
-                <TableHead className="sticky top-0 bg-card text-right w-[100px]">合計勝利数</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rankingData.map((item, index) => (
-                <TableRow key={item.id}>
-                  <TableCell className="text-center font-medium">{index + 1}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {item.icon && <item.icon className="h-5 w-5 text-muted-foreground" />}
-                      {item.name}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {formatUserWins(item.userWins)}
-                  </TableCell>
-                  <TableCell className="text-right font-semibold">{item.totalWins}勝</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-             {rankingData.length === 0 && (
-              <TableCaption>表示できるデータがありません。</TableCaption>
-            )}
-          </Table>
-        </div>
-      )}
-    </div>
-  );
+  const noWinsRecorded = classRankingsData.length === 0 && archetypeRankingsData.length === 0;
 
   return (
-    <div className="space-y-4">
-      {renderRankingTable(
-        "クラス別 勝利数ランキング",
-        "各クラスでのユーザー別総勝利数です。",
-        classRanking,
-        'class'
-      )}
-      {renderRankingTable(
-        "アーキタイプ別 勝利数ランキング",
-        "各デッキタイプでのユーザー別総勝利数です。",
-        archetypeRanking,
-        'archetype'
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-xl font-semibold mb-4">クラス別 ユーザー勝利数ランキング</h2>
+        {classRankingsData.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {classRankingsData.map(data => <RankingSection key={data.title} {...data} />)}
+          </div>
+        ) : (
+          !noWinsRecorded && <p className="text-muted-foreground">勝利記録のあるクラスがありません。</p>
+        )}
+      </div>
+
+      <div>
+        <h2 className="text-xl font-semibold mb-4">アーキタイプ別 ユーザー勝利数ランキング</h2>
+        {archetypeRankingsData.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {archetypeRankingsData.map(data => <RankingSection key={data.title} {...data} />)}
+          </div>
+        ) : (
+          !noWinsRecorded && <p className="text-muted-foreground">勝利記録のあるアーキタイプがありません。</p>
+        )}
+      </div>
+
+      {noWinsRecorded && (
+         <p className="text-center text-muted-foreground py-8">
+           どのクラスまたはアーキタイプでも勝利記録がありません。
+         </p>
       )}
     </div>
   );
 }
-

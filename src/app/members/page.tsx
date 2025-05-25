@@ -40,15 +40,18 @@ export default function MembersPage() {
         const key = localStorage.key(i);
         if (key && key.startsWith('yokolog_match_logs_')) {
           const user = key.replace('yokolog_match_logs_', '');
-          users.push(user);
-          try {
-            const item = localStorage.getItem(key);
-            const userMatches = item ? JSON.parse(item) : [];
-            if (Array.isArray(userMatches)) {
-              allMatches.push(...userMatches);
+          if (user) { // Ensure user is not an empty string
+            users.push(user);
+            try {
+              const item = localStorage.getItem(key);
+              const userMatches = item ? JSON.parse(item) : [];
+              if (Array.isArray(userMatches)) {
+                // Ensure all matches have a userId, default to discovered user if missing (for older data)
+                allMatches.push(...userMatches.map(m => ({...m, userId: m.userId || user })));
+              }
+            } catch (e) {
+              console.error(`Failed to parse matches for user ${user}:`, e);
             }
-          } catch (e) {
-            console.error(`Failed to parse matches for user ${user}:`, e);
           }
         }
       }
@@ -67,7 +70,9 @@ export default function MembersPage() {
     if (selectedUsername && typeof window !== 'undefined') {
       const item = localStorage.getItem(`yokolog_match_logs_${selectedUsername}`);
       const matchesRaw = item ? JSON.parse(item) : [];
-      const sortedMatches = [...matchesRaw].sort((a,b) => b.timestamp - a.timestamp);
+      // Ensure all matches have a userId, default to selectedUsername if missing
+      const matchesWithUserId = matchesRaw.map((m: MatchData) => ({...m, userId: m.userId || selectedUsername }));
+      const sortedMatches = [...matchesWithUserId].sort((a,b) => b.timestamp - a.timestamp);
       setSelectedUserMatches(sortedMatches);
     } else {
       setSelectedUserMatches([]);
@@ -96,16 +101,16 @@ export default function MembersPage() {
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="container mx-auto">
           <Tabs defaultValue="victory-rankings">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="victory-rankings">勝利数ランキング</TabsTrigger>
               <TabsTrigger value="member-logs">メンバーログ</TabsTrigger>
             </TabsList>
-            <TabsContent value="victory-rankings" className="mt-6">
+            <TabsContent value="victory-rankings" className="mt-0">
                <Card>
                 <CardHeader>
-                    <CardTitle>勝利数ランキング</CardTitle>
+                    <CardTitle>ユーザー別 勝利数ランキング</CardTitle>
                     <CardDescription>
-                        全ユーザーの記録に基づいたランキングです。
+                        各クラスおよびアーキタイプごとの、全ユーザーの勝利数ランキングです。
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -117,7 +122,7 @@ export default function MembersPage() {
                 </CardContent>
                </Card>
             </TabsContent>
-            <TabsContent value="member-logs" className="mt-6 space-y-6">
+            <TabsContent value="member-logs" className="mt-0 space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle>メンバーログ表示</CardTitle>
@@ -144,14 +149,20 @@ export default function MembersPage() {
                  </CardContent>
               </Card>
               
-              <UserLogTable
-                matches={selectedUserMatches}
-                archetypes={archetypes}
-                onDeleteMatch={handleDeleteMatch}
-                onEditRequest={handleEditRequest}
-                gameClassMapping={gameClassMapping}
-                isReadOnly={selectedUsername !== currentUsername}
-              />
+              {selectedUsername ? (
+                <UserLogTable
+                  matches={selectedUserMatches}
+                  archetypes={archetypes}
+                  onDeleteMatch={handleDeleteMatch}
+                  onEditRequest={handleEditRequest}
+                  gameClassMapping={gameClassMapping}
+                  isReadOnly={selectedUsername !== currentUsername}
+                />
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  {discoveredUsers.length > 0 ? "メンバーを選択してください。" : "表示できるメンバーログがありません。"}
+                </p>
+              )}
             </TabsContent>
           </Tabs>
         </div>
