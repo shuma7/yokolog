@@ -76,9 +76,9 @@ export function AggregatedStatsDisplay({ matches, archetypes, gameClassMapping }
   };
 
   const archetypeStats: ArchetypeAggregatedStats[] = archetypes
-    .filter(arch => !arch.isDefault || arch.id === 'unknown') 
     .map(arch => {
       const userMatchesWithArchetype = matches.filter(m => m.userArchetypeId === arch.id);
+      // Show archetype if it has matches, or if it's the 'unknown' archetype (even with 0 matches)
       if (userMatchesWithArchetype.length === 0 && arch.id !== 'unknown') return null;
 
       const internalFirst = calculateInternalStats(userMatchesWithArchetype.filter(m => m.turn === 'first'));
