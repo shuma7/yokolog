@@ -1,18 +1,37 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useUsername } from '@/hooks/use-username';
+import React, { useState, useEffect, ReactNode } from 'react';
+import { UsernameProvider } from '@/hooks/use-username'; // Import the new Provider
+import useActualLocalStorage from '@/hooks/use-local-storage'; // To decide if modal is needed
 import { UsernameModal } from '@/components/auth/username-modal';
 import { AppSidebar } from '@/components/layout/sidebar';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarProvider as UiSidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+
+// This component will be wrapped by UsernameProvider and contains the main app UI
+function MainAppContent({ children }: { children: ReactNode }) {
+  // Components inside here (like AppSidebar, and the page {children})
+  // can now call useUsername() and get the synchronized context value.
+  return (
+    <UiSidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <div className="flex flex-1 flex-col">
+          {children}
+        </div>
+      </SidebarInset>
+    </UiSidebarProvider>
+  );
+}
 
 export default function ClientLayoutWrapper({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { username, setUsername } = useUsername();
+  // ClientLayoutWrapper uses its own instance of useActualLocalStorage
+  // to decide whether to show the modal or the main app.
+  const [usernameForDecision, setUsernameForDecision] = useActualLocalStorage<string | null>('yokolog_current_user', null);
   const [initialStorageChecked, setInitialStorageChecked] = useState(false);
 
   useEffect(() => {
@@ -20,8 +39,8 @@ export default function ClientLayoutWrapper({
     setInitialStorageChecked(true);
   }, []); // Empty dependency array: runs only once on mount
 
-  const handleUsernameSet = (newUsername: string) => {
-    setUsername(newUsername);
+  const handleUsernameSetInModal = (newUsername: string) => {
+    setUsernameForDecision(newUsername); // This updates local storage and ClientLayoutWrapper's state
   };
 
   if (!initialStorageChecked) {
@@ -33,20 +52,17 @@ export default function ClientLayoutWrapper({
     );
   }
 
-  if (!username) { // If, after checking storage, username is still not set.
-    return <UsernameModal onUsernameSet={handleUsernameSet} />;
+  if (!usernameForDecision) {
+    // If username (from ClientLayoutWrapper's direct localStorage check) is not set, show modal.
+    return <UsernameModal onUsernameSet={handleUsernameSetInModal} />;
   }
 
-  // Username is set, render the app.
+  // Username IS set from ClientLayoutWrapper's perspective.
+  // Now, render the UsernameProvider, which will also read from localStorage
+  // (effectively getting the same value) and provide it via context to the rest of the app.
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        {/* Main content area */}
-        <div className="flex flex-1 flex-col">
-          {children}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+    <UsernameProvider>
+      <MainAppContent>{children}</MainAppContent>
+    </UsernameProvider>
   );
 }
