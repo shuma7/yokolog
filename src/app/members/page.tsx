@@ -3,7 +3,6 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { MainHeader } from "@/components/layout/main-header";
-// import { useMatchLogger } from "@/hooks/use-match-logger"; // Not needed for reading other users' logs directly
 import { useArchetypeManager } from "@/hooks/use-archetype-manager";
 import { UserLogTable } from "@/components/data-tables/user-log-table";
 import { MemberVictoryRankings } from "@/components/stats/member-victory-rankings";
@@ -19,32 +18,44 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardDescription, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { useUsername } from "@/hooks/use-username"; // For current user context
+import { useUsername } from "@/hooks/use-username";
 
 export default function MembersPage() {
   const { archetypes } = useArchetypeManager();
   const { toast } = useToast();
-  const { username: currentUsername } = useUsername(); // Get current logged-in username
+  const { username: currentUsername } = useUsername();
 
   const [discoveredUsers, setDiscoveredUsers] = useState<string[]>([]);
   const [selectedUsername, setSelectedUsername] = useState<string>("");
   const [selectedUserMatches, setSelectedUserMatches] = useState<MatchData[]>([]);
+  const [allUsersMatches, setAllUsersMatches] = useState<MatchData[]>([]);
 
   const gameClassMapping: GameClassNameMap = GAME_CLASS_EN_TO_JP;
 
   useEffect(() => {
-    // Discover users by scanning localStorage for match log keys
     const users: string[] = [];
+    const allMatches: MatchData[] = [];
     if (typeof window !== 'undefined') {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('yokolog_match_logs_')) {
-          users.push(key.replace('yokolog_match_logs_', ''));
+          const user = key.replace('yokolog_match_logs_', '');
+          users.push(user);
+          try {
+            const item = localStorage.getItem(key);
+            const userMatches = item ? JSON.parse(item) : [];
+            if (Array.isArray(userMatches)) {
+              allMatches.push(...userMatches);
+            }
+          } catch (e) {
+            console.error(`Failed to parse matches for user ${user}:`, e);
+          }
         }
       }
     }
     setDiscoveredUsers(users.sort());
-    // Default to current user if they exist in discovered users, or first user
+    setAllUsersMatches(allMatches);
+
     if (currentUsername && users.includes(currentUsername)) {
       setSelectedUsername(currentUsername);
     } else if (users.length > 0) {
@@ -53,11 +64,9 @@ export default function MembersPage() {
   }, [currentUsername]);
 
   useEffect(() => {
-    // Load matches for the selected user
     if (selectedUsername && typeof window !== 'undefined') {
       const item = localStorage.getItem(`yokolog_match_logs_${selectedUsername}`);
       const matchesRaw = item ? JSON.parse(item) : [];
-      // Sort matches for display: newest first
       const sortedMatches = [...matchesRaw].sort((a,b) => b.timestamp - a.timestamp);
       setSelectedUserMatches(sortedMatches);
     } else {
@@ -65,10 +74,6 @@ export default function MembersPage() {
     }
   }, [selectedUsername]);
 
-
-  // For UserLogTable, we pass selectedUserMatches which is already sorted.
-  // Editing/Deleting from other users' logs is disabled in UserLogTable for simplicity.
-  // If such functionality is needed, it would require careful handling of 'saveMatches' for other users.
   const handleDeleteMatch = (matchId: string) => {
      toast({
         title: "操作不可",
@@ -85,7 +90,6 @@ export default function MembersPage() {
       });
   };
 
-
   return (
     <div className="flex flex-1 flex-col">
       <MainHeader title="メンバーデータ" />
@@ -101,15 +105,14 @@ export default function MembersPage() {
                 <CardHeader>
                     <CardTitle>勝利数ランキング</CardTitle>
                     <CardDescription>
-                        {selectedUsername ? `${selectedUsername}さんの記録に基づいたランキングです。` : "メンバーを選択してください。"}
+                        全ユーザーの記録に基づいたランキングです。
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <MemberVictoryRankings 
-                        matches={selectedUserMatches} 
+                        matches={allUsersMatches} 
                         allArchetypes={archetypes} 
                         gameClassMapping={gameClassMapping} 
-                        usernameForDisplay={selectedUsername || "選択ユーザー"}
                     />
                 </CardContent>
                </Card>
@@ -142,21 +145,17 @@ export default function MembersPage() {
               </Card>
               
               <UserLogTable
-                matches={selectedUserMatches} // Displaying selected user's matches
+                matches={selectedUserMatches}
                 archetypes={archetypes}
-                onDeleteMatch={handleDeleteMatch} // Operations on other users' logs are disabled
-                onEditRequest={handleEditRequest} // Operations on other users' logs are disabled
+                onDeleteMatch={handleDeleteMatch}
+                onEditRequest={handleEditRequest}
                 gameClassMapping={gameClassMapping}
-                isReadOnly={selectedUsername !== currentUsername} // Pass read-only flag
+                isReadOnly={selectedUsername !== currentUsername}
               />
             </TabsContent>
           </Tabs>
         </div>
       </main>
-      {/* Edit dialog is removed from here as editing other users' logs is complex without a backend
-          and direct localStorage manipulation for other users is risky.
-          If editing current user's logs from here is desired, `useMatchLogger` needs to be used carefully.
-      */}
     </div>
   );
 }
