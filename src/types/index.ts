@@ -63,4 +63,4 @@ export interface ClassIconMapping {
 }
 
 // Helper type for mapping GameClass English literals to Japanese names
-export type GameClassKokkai meisyo = Record<GameClass, string>;
+export type GameClassNameMap = Record<GameClass, string>;

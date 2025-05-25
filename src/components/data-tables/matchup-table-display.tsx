@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import type { MatchData, Archetype, GameClass, GameClassKokkai meisyo } from "@/types";
+import type { MatchData, Archetype, GameClass, GameClassNameMap } from "@/types";
 import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON, UNKNOWN_ARCHETYPE_ICON } from "@/lib/game-data";
 import {
   Table,
@@ -25,7 +25,7 @@ import { ScrollArea } from '../ui/scroll-area';
 interface MatchupTableDisplayProps {
   matches: MatchData[];
   allArchetypes: Archetype[];
-  gameClassMapping: Record<GameClass, string>;
+  gameClassMapping: GameClassNameMap;
 }
 
 interface MatchupStats {

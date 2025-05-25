@@ -1,6 +1,6 @@
 "use client";
 
-import type { MatchData, Archetype, GameClass } from "@/types";
+import type { MatchData, Archetype, GameClass, GameClassNameMap } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +9,7 @@ import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON } from "@/lib/game-data";
 interface UserStatsDisplayProps {
   matches: MatchData[];
   archetypes: Archetype[];
-  gameClassMapping: Record<GameClass, string>;
+  gameClassMapping: GameClassNameMap;
 }
 
 interface StatItem {

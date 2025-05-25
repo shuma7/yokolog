@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react"; // Edit3 removed as per previous state
-import type { MatchData, Archetype, GameClass } from "@/types";
+import type { MatchData, Archetype, GameClass, GameClassNameMap } from "@/types";
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON } from "@/lib/game-data";
@@ -31,7 +31,7 @@ interface UserLogTableProps {
   matches: MatchData[];
   archetypes: Archetype[];
   onDeleteMatch: (matchId: string) => void;
-  gameClassMapping: Record<GameClass, string>;
+  gameClassMapping: GameClassNameMap;
 }
 
 export function UserLogTable({ matches, archetypes, onDeleteMatch, gameClassMapping }: UserLogTableProps) {

@@ -22,7 +22,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import type { Archetype, MatchData, GameClass } from "@/types";
+import type { Archetype, MatchData, GameClass, GameClassNameMap } from "@/types";
 import { CLASS_ICONS, GENERIC_ARCHETYPE_ICON } from '@/lib/game-data';
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -41,7 +41,7 @@ interface MatchDataFormProps {
   onSubmit: (data: MatchFormValues) => void;
   initialData?: Partial<MatchData>;
   submitButtonText?: string;
-  gameClassMapping: Record<GameClass, string>;
+  gameClassMapping: GameClassNameMap;
 }
 
 export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonText = "対戦を記録", gameClassMapping }: MatchDataFormProps) {
