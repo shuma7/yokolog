@@ -20,16 +20,18 @@ export function UsernameProvider({ children }: { children: ReactNode }) {
     setUsernameState(newUsername);
   }, [setUsernameState]);
 
-  // Define the context value object separately
   const providerValue: UsernameContextType = {
     username,
     setUsername: setUsernameCallback,
   };
 
+  // Alias the Provider component for clarity in JSX
+  const ContextProvider = UsernameContext.Provider;
+
   return (
-    <UsernameContext.Provider value={providerValue}>
+    <ContextProvider value={providerValue}>
       {children}
-    </UsernameContext.Provider>
+    </ContextProvider>
   );
 }
 
