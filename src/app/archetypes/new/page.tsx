@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { MainHeader } from "@/components/layout/main-header";
 import { useArchetypeManager } from "@/hooks/use-archetype-manager";
 import { useToast } from "@/hooks/use-toast";
-import type { Archetype, GameClass } from "@/types"; // Removed GameClassDetail as it's not directly used here
+import type { Archetype, GameClass } from "@/types";
 import { ALL_GAME_CLASSES } from "@/types";
 import { ArchetypeForm } from "@/components/forms/archetype-form";
 import {
@@ -38,6 +38,7 @@ import {
 import { PlusCircle, Edit3, Trash2 } from "lucide-react";
 import { CLASS_ICONS, formatArchetypeNameWithSuffix, UNKNOWN_ARCHETYPE_ICON, getJapaneseClassNameFromValue } from "@/lib/game-data";
 import type { MatchData } from "@/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 export default function ManageArchetypesPage() {
@@ -48,8 +49,10 @@ export default function ManageArchetypesPage() {
   const [currentArchetype, setCurrentArchetype] = useState<Partial<Archetype> | null>(null);
   const [allMatchesForCounts, setAllMatchesForCounts] = useState<MatchData[]>([]);
   const [discoveredUserKeys, setDiscoveredUserKeys] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    setIsLoading(true);
     const collectedMatches: MatchData[] = [];
     const userLogKeys: string[] = [];
     if (typeof window !== 'undefined') {
@@ -71,6 +74,7 @@ export default function ManageArchetypesPage() {
     }
     setAllMatchesForCounts(collectedMatches);
     setDiscoveredUserKeys(userLogKeys);
+    setIsLoading(false);
   }, []); 
 
   const handleAddNew = () => {
@@ -190,6 +194,37 @@ export default function ManageArchetypesPage() {
   const getMatchCount = (archetypeId: string) => {
     return allMatchesForCounts.filter(match => match.userArchetypeId === archetypeId || match.opponentArchetypeId === archetypeId).length;
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 flex-col">
+        <MainHeader
+          title="デッキタイプ管理"
+          actions={
+            <Button onClick={handleAddNew} disabled>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              新規デッキタイプ追加
+            </Button>
+          }
+        />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+          <div className="container mx-auto space-y-6">
+            {[...Array(3)].map((_, i) => (
+              <section key={i} className="mb-8">
+                <Skeleton className="h-7 w-1/4 mb-3" /> {/* Class Title Skeleton */}
+                <div className="rounded-md border">
+                  <Skeleton className="h-10 w-full" /> {/* Table Header Skeleton */}
+                  {[...Array(2)].map((_, j) => (
+                     <Skeleton key={j} className="h-10 w-full border-t" /> 
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col">

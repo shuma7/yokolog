@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardDescription, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useUsername } from "@/hooks/use-username";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function MembersPage() {
   const { archetypes } = useArchetypeManager();
@@ -29,10 +30,13 @@ export default function MembersPage() {
   const [selectedUsername, setSelectedUsername] = useState<string>("");
   const [selectedUserMatches, setSelectedUserMatches] = useState<MatchData[]>([]);
   const [allUsersMatches, setAllUsersMatches] = useState<MatchData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMemberLogLoading, setIsMemberLogLoading] = useState(false);
 
   const gameClassMapping: GameClassNameMap = GAME_CLASS_EN_TO_JP;
 
   useEffect(() => {
+    setIsLoading(true);
     const users: string[] = [];
     const allMatches: MatchData[] = [];
     if (typeof window !== 'undefined') {
@@ -64,15 +68,18 @@ export default function MembersPage() {
     } else if (sortedUsers.length > 0) {
       setSelectedUsername(sortedUsers[0]);
     }
+    setIsLoading(false);
   }, [currentUsername]);
 
   useEffect(() => {
     if (selectedUsername && typeof window !== 'undefined') {
+      setIsMemberLogLoading(true);
       const item = localStorage.getItem(`yokolog_match_logs_${selectedUsername}`);
       const matchesRaw = item ? JSON.parse(item) : [];
       const matchesWithUserId = matchesRaw.map((m: MatchData) => ({...m, userId: m.userId || selectedUsername }));
       const sortedMatches = [...matchesWithUserId].sort((a,b) => b.timestamp - a.timestamp);
       setSelectedUserMatches(sortedMatches);
+      setIsMemberLogLoading(false);
     } else {
       setSelectedUserMatches([]);
     }
@@ -93,6 +100,30 @@ export default function MembersPage() {
         variant: "destructive",
       });
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 flex-col">
+        <MainHeader title="メンバーデータ" />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+          <div className="container mx-auto space-y-6">
+            <Skeleton className="h-10 w-full" /> {/* TabsList Skeleton */}
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-1/2" /> {/* CardTitle Skeleton */}
+                <Skeleton className="h-4 w-3/4" /> {/* CardDescription Skeleton */}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col">
@@ -148,8 +179,12 @@ export default function MembersPage() {
                  </CardContent>
               </Card>
               
-              <div className="max-h-[calc(100vh-330px)] overflow-y-auto"> {/* Adjusted max-h here, considering elements above */}
-                {selectedUsername ? (
+              <div className="max-h-[calc(100vh-330px)] overflow-y-auto">
+                {isMemberLogLoading ? (
+                  <div className="space-y-2 mt-4">
+                    {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+                  </div>
+                ) : selectedUsername ? (
                   <UserLogTable
                     matches={selectedUserMatches}
                     archetypes={archetypes}
@@ -157,7 +192,7 @@ export default function MembersPage() {
                     onEditRequest={handleEditRequest}
                     gameClassMapping={gameClassMapping}
                     isReadOnly={selectedUsername !== currentUsername}
-                    isMinimal={true} // Apply minimal styling for member logs
+                    isMinimal={true}
                   />
                 ) : (
                   <p className="text-center text-muted-foreground py-8">
