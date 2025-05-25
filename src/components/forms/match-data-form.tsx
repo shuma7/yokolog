@@ -60,6 +60,7 @@ const getArchetypeDisplayInfo = (archetypeId: string | undefined, archetypes: Ar
   if (!archetypeId) return null;
   const archetype = archetypes.find(a => a.id === archetypeId);
   if (!archetype) return { name: "不明なデッキタイプ" };
+  // Display name formatting now happens here using the imported function
   return { name: formatArchetypeNameWithSuffix(archetype) };
 };
 
@@ -113,7 +114,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
   const watchedResult = form.watch("result");
 
   const sortedArchetypes = useMemo(() => [...archetypes].sort((a, b) => {
-    if (a.id === 'unknown') return -1; // 'unknown' comes first for selection, but should be last in management
+    if (a.id === 'unknown') return -1; 
     if (b.id === 'unknown') return 1;
     const classAInfo = ALL_GAME_CLASSES.find(c => c.value === a.gameClass);
     const classBInfo = ALL_GAME_CLASSES.find(c => c.value === b.gameClass);
@@ -128,12 +129,12 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
 
   const filteredUserArchetypes = useMemo(() => {
     if (!userSelectedClass) return [];
-    return sortedArchetypes.filter(arch => arch.gameClass === userSelectedClass || arch.id === 'unknown');
+    return sortedArchetypes.filter(arch => arch.gameClass === userSelectedClass && arch.id !== 'unknown');
   }, [userSelectedClass, sortedArchetypes]);
 
   const filteredOpponentArchetypes = useMemo(() => {
     if (!opponentSelectedClass) return [];
-    return sortedArchetypes.filter(arch => arch.gameClass === opponentSelectedClass || arch.id === 'unknown');
+    return sortedArchetypes.filter(arch => arch.gameClass === opponentSelectedClass && arch.id !== 'unknown');
   }, [opponentSelectedClass, sortedArchetypes]);
 
   useEffect(() => {
@@ -528,10 +529,10 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                 <Button
                   type="submit"
                   className={cn(
-                    "font-bold", // Common style for both
+                    "font-bold", 
                     initialData?.id
-                      ? "w-full sm:w-auto text-lg py-3" // Style for "Update" button
-                      : "w-full text-3xl py-6"   // Style for "NEXT!" button
+                      ? "w-full sm:w-auto text-lg py-3" 
+                      : "w-full text-3xl py-6"   
                   )}
                 >
                   {initialData?.id ? (submitButtonText || "対戦情報を更新") : "NEXT!"}
@@ -544,3 +545,4 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
     </Card>
   );
 }
+
