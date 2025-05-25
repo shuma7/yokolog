@@ -8,7 +8,7 @@ import { useMatchLogger } from "@/hooks/use-match-logger";
 import { useToast } from "@/hooks/use-toast";
 import { GAME_CLASS_EN_TO_JP } from "@/lib/game-data";
 import { useUsername } from "@/hooks/use-username"; 
-import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton for loading state
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function HomePage() { 
   const { archetypes } = useArchetypeManager();
@@ -50,17 +50,16 @@ export default function HomePage() {
     }
   };
 
-  // If username is not yet loaded/set, or archetypes are not loaded, show a placeholder/loading state.
-  // This prevents the form from being rendered and submitted prematurely.
-  if (!username || archetypes.length === 0) {
+  // If ClientLayoutWrapper ensures username is set,
+  // the primary concern for initial loading display is archetypes.
+  if (archetypes.length === 0) {
     return (
       <div className="flex flex-1 flex-col">
         <MainHeader title="新規対戦を記録" />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           <div className="container mx-auto">
             <div className="text-center text-muted-foreground py-8 space-y-4">
-              {!username && <p>ユーザー情報を読み込み中、またはユーザー名が設定されていません...</p>}
-              {username && archetypes.length === 0 && <p>デッキタイプを読み込み中、またはデッキタイプが定義されていません。先にデッキタイプを追加してください。</p>}
+              <p>デッキタイプを読み込み中、またはデッキタイプが定義されていません。先にデッキタイプを追加してください。</p>
               {/* Basic skeleton for the form area */}
               <div className="space-y-6 mt-4">
                 <Skeleton className="h-10 w-full" />
@@ -79,7 +78,6 @@ export default function HomePage() {
       <MainHeader title="新規対戦を記録" />
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="container mx-auto">
-          {/* Archetypes check is now part of the main loading condition above */}
           <MatchDataForm archetypes={archetypes} onSubmit={handleSubmit} gameClassMapping={GAME_CLASS_EN_TO_JP} />
         </div>
       </main>

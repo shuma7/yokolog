@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -12,23 +13,19 @@ export default function ClientLayoutWrapper({
   children: React.ReactNode;
 }) {
   const { username, setUsername } = useUsername();
-  const [isUsernameChecked, setIsUsernameChecked] = useState(false);
+  const [initialStorageChecked, setInitialStorageChecked] = useState(false);
 
   useEffect(() => {
-    // This effect ensures that we don't render the UI (or modal) until
-    // the username has been loaded from localStorage.
-    // Check is only relevant on initial mount.
-    if (username !== undefined) { // Check if username has been loaded from localStorage
-        setIsUsernameChecked(true);
-    }
-  }, [username]);
+    // This effect runs once on mount to confirm initial username load from storage.
+    setInitialStorageChecked(true);
+  }, []); // Empty dependency array: runs only once on mount
 
   const handleUsernameSet = (newUsername: string) => {
     setUsername(newUsername);
   };
 
-  if (!isUsernameChecked) {
-    // Optional: Render a loading state or null while checking username
+  if (!initialStorageChecked) {
+    // Show spinner until we've had a chance to read from local storage.
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
@@ -36,10 +33,11 @@ export default function ClientLayoutWrapper({
     );
   }
 
-  if (!username) {
+  if (!username) { // If, after checking storage, username is still not set.
     return <UsernameModal onUsernameSet={handleUsernameSet} />;
   }
 
+  // Username is set, render the app.
   return (
     <SidebarProvider>
       <AppSidebar />
