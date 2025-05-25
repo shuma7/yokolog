@@ -13,7 +13,7 @@ import Link from "next/link";
 import { PlusCircle } from "lucide-react";
 import { GAME_CLASS_EN_TO_JP } from "@/lib/game-data";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { MatchData, GameClassNameMap } from "@/types"; // Removed MatchFormValues as it's not directly used here for new matches
+import type { MatchData, GameClassNameMap } from "@/types";
 import { MatchDataForm, type MatchFormValues } from "@/components/forms/match-data-form";
 import {
   Dialog,
@@ -95,7 +95,7 @@ export default function PersonalLogPage() {
         title="個人ログ"
         actions={
           <Button asChild>
-            <Link href="/"> {/* Changed href to / */}
+            <Link href="/">
               <PlusCircle className="mr-2 h-4 w-4" /> 新規対戦を追加
             </Link>
           </Button>
@@ -131,7 +131,7 @@ export default function PersonalLogPage() {
           }
           setIsEditDialogOpen(open);
         }}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>対戦編集</DialogTitle>
               <DialogDescription>
