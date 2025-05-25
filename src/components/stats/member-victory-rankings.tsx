@@ -62,11 +62,15 @@ export function MemberVictoryRankings({ matches, allArchetypes, gameClassMapping
 
     let currentRank = 0;
     let lastWins = -1;
+    // Iterate through all users with wins to assign correct ranks based on ties
     userWins.forEach((userWin, index) => {
       if (userWin.wins !== lastWins) {
-        currentRank = index + 1;
+        currentRank = index + 1; 
         lastWins = userWin.wins;
       }
+      // Only add to the list if their rank would be within top 5 (or if they tie with someone in top 5)
+      // This logic is tricky if we want to show more than 5 if there's a tie at 5th place.
+      // For simplicity, we'll rank everyone first, then slice.
       rankedList.push({ ...userWin, rank: currentRank });
     });
     return rankedList;
@@ -86,15 +90,19 @@ export function MemberVictoryRankings({ matches, allArchetypes, gameClassMapping
 
       const sortedUserWins = Object.entries(winsByClassForUser)
         .map(([username, wins]) => ({ username, wins }))
-        .filter(item => item.wins > 0)
+        .filter(item => item.wins > 0) // Ensure only users with wins are considered
         .sort((a, b) => b.wins - a.wins);
       
       if (sortedUserWins.length === 0) return null;
 
+      const rankedUsers = assignRanks(sortedUserWins);
+      const top5Users = rankedUsers.slice(0, 5);
+
+
       return {
         title: `${gameClassMapping[gc.value] || gc.value}ランキング`,
         icon: CLASS_ICONS[gc.value] || GENERIC_ARCHETYPE_ICON,
-        userRankings: assignRanks(sortedUserWins),
+        userRankings: top5Users,
       };
     }).filter(Boolean) as RankingDisplayProps[];
   }, [matches, allArchetypes, gameClassMapping]);
@@ -112,16 +120,19 @@ export function MemberVictoryRankings({ matches, allArchetypes, gameClassMapping
 
         const sortedUserWins = Object.entries(winsByArchetypeForUser)
           .map(([username, wins]) => ({ username, wins }))
-          .filter(item => item.wins > 0)
+          .filter(item => item.wins > 0) // Ensure only users with wins are considered
           .sort((a, b) => b.wins - a.wins);
 
         if (sortedUserWins.length === 0) return null;
+        
+        const rankedUsers = assignRanks(sortedUserWins);
+        const top5Users = rankedUsers.slice(0, 5);
         
         const Icon = CLASS_ICONS[arch.gameClass] || GENERIC_ARCHETYPE_ICON;
         return {
           title: `${formatArchetypeNameWithSuffix(arch)}ランキング`,
           icon: Icon,
-          userRankings: assignRanks(sortedUserWins),
+          userRankings: top5Users,
         };
       })
       .filter(Boolean) as RankingDisplayProps[];
@@ -170,3 +181,4 @@ export function MemberVictoryRankings({ matches, allArchetypes, gameClassMapping
     </div>
   );
 }
+
