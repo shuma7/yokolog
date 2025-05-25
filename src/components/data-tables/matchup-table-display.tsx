@@ -121,35 +121,55 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
         const firstTurnItems: Array<{ result: 'win' | 'loss' }> = [];
         const secondTurnItems: Array<{ result: 'win' | 'loss' }> = [];
 
-        matches.forEach(match => {
-          let perspectiveResult: 'win' | 'loss' | null = null;
-          let perspectiveTurn: 'first' | 'second' | 'unknown' | null = null;
+        if (rowArch.id === colArch.id) { // Mirror match calculation
+          matches.forEach(match => {
+            if (match.userArchetypeId === rowArch.id && match.opponentArchetypeId === colArch.id) {
+              // This is an actual recorded mirror match for rowArch
+              
+              // Overall stats consider both perspectives of this single game
+              overallItems.push({ result: match.result }); // rowArch's perspective as user
+              overallItems.push({ result: match.result === 'win' ? 'loss' : 'win' }); // rowArch's perspective as opponent
 
-          // Case 1: rowArch is user, colArch is opponent (Direct perspective)
-          if (match.userArchetypeId === rowArch.id && match.opponentArchetypeId === colArch.id) {
-            perspectiveResult = match.result;
-            perspectiveTurn = match.turn;
-          }
-          // Case 2: colArch is user, rowArch is opponent (Inverted perspective for symmetry)
-          // IMPORTANT: Only apply inversion if not a mirror match (rowArch.id !== colArch.id)
-          else if (rowArch.id !== colArch.id &&
-                     match.userArchetypeId === colArch.id &&
-                     match.opponentArchetypeId === rowArch.id) {
-            perspectiveResult = match.result === 'win' ? 'loss' : 'win';
-            if (match.turn === 'first') perspectiveTurn = 'second';
-            else if (match.turn === 'second') perspectiveTurn = 'first';
-            else perspectiveTurn = 'unknown';
-          }
-
-          if (perspectiveResult) {
-            overallItems.push({ result: perspectiveResult });
-            if (perspectiveTurn === 'first') {
-              firstTurnItems.push({ result: perspectiveResult });
-            } else if (perspectiveTurn === 'second') {
-              secondTurnItems.push({ result: perspectiveResult });
+              // Turn-specific stats
+              if (match.turn === 'first') { // rowArch (user) went first
+                firstTurnItems.push({ result: match.result }); // rowArch's result when going first
+                // Implied: rowArch (opponent) went second and had the opposite result
+                secondTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' });
+              } else if (match.turn === 'second') { // rowArch (user) went second
+                secondTurnItems.push({ result: match.result }); // rowArch's result when going second
+                // Implied: rowArch (opponent) went first and had the opposite result
+                firstTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' });
+              }
             }
-          }
-        });
+          });
+        } else { // Non-mirror match calculation (symmetrical)
+          matches.forEach(match => {
+            let perspectiveResult: 'win' | 'loss' | null = null;
+            let perspectiveTurn: 'first' | 'second' | 'unknown' | null = null;
+
+            // Case 1: rowArch is user, colArch is opponent (Direct perspective)
+            if (match.userArchetypeId === rowArch.id && match.opponentArchetypeId === colArch.id) {
+              perspectiveResult = match.result;
+              perspectiveTurn = match.turn;
+            }
+            // Case 2: colArch is user, rowArch is opponent (Inverted perspective for symmetry)
+            else if (match.userArchetypeId === colArch.id && match.opponentArchetypeId === rowArch.id) {
+              perspectiveResult = match.result === 'win' ? 'loss' : 'win';
+              if (match.turn === 'first') perspectiveTurn = 'second';
+              else if (match.turn === 'second') perspectiveTurn = 'first';
+              else perspectiveTurn = 'unknown';
+            }
+
+            if (perspectiveResult) {
+              overallItems.push({ result: perspectiveResult });
+              if (perspectiveTurn === 'first') {
+                firstTurnItems.push({ result: perspectiveResult });
+              } else if (perspectiveTurn === 'second') {
+                secondTurnItems.push({ result: perspectiveResult });
+              }
+            }
+          });
+        }
         
         data[rowArch.id][colArch.id] = {
           overall: calculateRawStats(overallItems),
@@ -218,8 +238,12 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
     const overallWinRate = stats.overall.winRate;
     let cellBgClass = "hover:bg-muted/50";
     if (stats.overall.gamesPlayed > 0) {
-      if (overallWinRate >= 55) cellBgClass = "bg-blue-600/20 hover:bg-blue-600/30";
-      else if (overallWinRate <= 45) cellBgClass = "bg-red-600/20 hover:bg-red-600/30";
+      if (userArchForPopover.id !== oppArchForPopover?.id) { // Only color non-mirror matches
+        if (overallWinRate >= 55) cellBgClass = "bg-blue-600/20 hover:bg-blue-600/30";
+        else if (overallWinRate <= 45) cellBgClass = "bg-red-600/20 hover:bg-red-600/30";
+      } else { // Mirror match cell styling
+        cellBgClass = "bg-muted/30 hover:bg-muted/50";
+      }
     }
     
     const popoverTitle = oppArchForPopover 
@@ -354,13 +378,6 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                       </TableCell>
                       {displayArchetypes.map(oppArch => {
                         const matchupStats = matchupData[userArch.id]?.[oppArch.id];
-                        if (userArch.id === oppArch.id) {
-                           return (
-                            <TableCell key={oppArch.id} className="p-0 min-w-[120px] bg-muted/30">
-                               {renderStatsCell(matchupStats, userArch, oppArch)}
-                            </TableCell>
-                           );
-                        }
                         return (
                           <TableCell key={oppArch.id} className="p-0 min-w-[120px]">
                             {renderStatsCell(matchupStats, userArch, oppArch)}
