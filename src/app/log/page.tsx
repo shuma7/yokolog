@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PlusCircle } from "lucide-react";
+import { GAME_CLASS_EN_TO_JP } from "@/lib/game-data";
 
 export default function UserLogPage() {
   const { matches, deleteMatch } = useMatchLogger();
@@ -21,44 +22,39 @@ export default function UserLogPage() {
     try {
       deleteMatch(matchId);
       toast({
-        title: "Match Deleted",
-        description: "The match record has been removed.",
+        title: "対戦削除完了",
+        description: "対戦記録を削除しました。",
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Could not delete match. Please try again.",
+        title: "エラー",
+        description: "対戦記録を削除できませんでした。もう一度お試しください。",
         variant: "destructive",
       });
     }
   };
   
-  // const handleEditMatch = (match: MatchData) => {
-  //   // TODO: Implement modal or navigation for editing a match
-  //   toast({ title: "Edit action (not implemented)", description: `Editing match ID: ${match.id}`});
-  // };
-
   return (
     <div className="flex flex-1 flex-col">
       <MainHeader 
-        title="My Match Log"
+        title="マイ対戦記録"
         actions={
           <Button asChild>
             <Link href="/matches/new">
-              <PlusCircle className="mr-2 h-4 w-4" /> Add New Match
+              <PlusCircle className="mr-2 h-4 w-4" /> 新規対戦を追加
             </Link>
           </Button>
         }
       />
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="container mx-auto">
-          <UserStatsDisplay matches={sortedMatches} archetypes={archetypes} />
-          <h2 className="text-2xl font-semibold mb-4 mt-8">Match History</h2>
+          <UserStatsDisplay matches={sortedMatches} archetypes={archetypes} gameClassMapping={GAME_CLASS_EN_TO_JP} />
+          <h2 className="text-2xl font-semibold mb-4 mt-8">対戦履歴</h2>
           <UserLogTable 
             matches={sortedMatches} 
             archetypes={archetypes} 
             onDeleteMatch={handleDeleteMatch}
-            // onEditMatch={handleEditMatch} 
+            gameClassMapping={GAME_CLASS_EN_TO_JP}
           />
         </div>
       </main>

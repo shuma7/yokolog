@@ -16,7 +16,6 @@ export function UsernameModal({ onUsernameSet }: UsernameModalProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Delay visibility to allow page to render and avoid flash of content
     const timer = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(timer);
   }, []);
@@ -29,7 +28,7 @@ export function UsernameModal({ onUsernameSet }: UsernameModalProps) {
   };
 
   if (!isVisible) {
-    return null; // Or a loading spinner
+    return null; 
   }
 
   return (
@@ -39,17 +38,17 @@ export function UsernameModal({ onUsernameSet }: UsernameModalProps) {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
             <User className="h-8 w-8" />
           </div>
-          <CardTitle className="text-2xl">Welcome to yokolog!</CardTitle>
-          <CardDescription>Please enter your username to continue. This will be used to save your match data locally.</CardDescription>
+          <CardTitle className="text-2xl">yokologへようこそ！</CardTitle>
+          <CardDescription>続けるにはユーザー名を入力してください。これは対戦データをローカルに保存するために使用されます。</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">ユーザー名</Label>
               <Input
                 id="username"
                 type="text"
-                placeholder="Enter your username"
+                placeholder="ユーザー名を入力"
                 value={inputUsername}
                 onChange={(e) => setInputUsername(e.target.value)}
                 required
@@ -59,7 +58,7 @@ export function UsernameModal({ onUsernameSet }: UsernameModalProps) {
           </CardContent>
           <CardFooter>
             <Button type="submit" className="w-full" disabled={!inputUsername.trim()}>
-              Save Username
+              ユーザー名を保存
             </Button>
           </CardFooter>
         </form>

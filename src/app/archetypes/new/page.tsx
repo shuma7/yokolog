@@ -4,7 +4,7 @@ import { ArchetypeForm } from "@/components/forms/archetype-form";
 import { MainHeader } from "@/components/layout/main-header";
 import { useArchetypeManager } from "@/hooks/use-archetype-manager";
 import { useToast } from "@/hooks/use-toast";
-import type { GameClass } from "@/types";
+import type { GameClass }okalistedArchetype } from "@/types";
 
 export default function AddArchetypePage() {
   const { addArchetype } = useArchetypeManager();
@@ -14,14 +14,14 @@ export default function AddArchetypePage() {
     try {
       const newArchetype = addArchetype(data.name, data.abbreviation, data.gameClass);
       toast({
-        title: "Archetype Added",
-        description: `Successfully added "${newArchetype.name}".`,
+        title: "デッキタイプ追加完了",
+        description: `「${newArchetype.name}」を正常に追加しました。`,
       });
     } catch (error) {
-      console.error("Failed to add archetype:", error);
+      console.error("デッキタイプの追加に失敗しました:", error);
       toast({
-        title: "Error",
-        description: "Could not add archetype. Please try again.",
+        title: "エラー",
+        description: "デッキタイプを追加できませんでした。もう一度お試しください。",
         variant: "destructive",
       });
     }
@@ -29,7 +29,7 @@ export default function AddArchetypePage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <MainHeader title="Propose New Archetype" />
+      <MainHeader title="新規デッキタイプ提案" />
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="container mx-auto">
           <ArchetypeForm onSubmit={handleSubmit} />

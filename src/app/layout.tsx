@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'yokolog - Shadowverse Match Tracker',
-  description: 'Track your Shadowverse matches and analyze your performance.',
+  title: 'yokolog - シャドウバース対戦記録',
+  description: 'シャドウバースの対戦を記録し、戦績を分析しましょう。',
 };
 
 export default function RootLayout({
@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="ja" className="dark">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}>
         <ClientLayoutWrapper>
           {children}

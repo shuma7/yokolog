@@ -1,6 +1,6 @@
-import type { Archetype, GameClass, ClassIconMapping, ArchetypeWithIcon } from '@/types';
+import type { Archetype, GameClass, ClassIconMapping, ArchetypeWithIcon, GameClassDetail } from '@/types';
 import { Leaf, Swords, Sparkles, Flame, Ghost, Droplets, ShieldCheck, Cog, HelpCircle, Replace } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs
+import { v4 as uuidv4 } from 'uuid';
 
 export const CLASS_ICONS: ClassIconMapping = {
   Forestcraft: Leaf,
@@ -16,35 +16,44 @@ export const CLASS_ICONS: ClassIconMapping = {
 export const UNKNOWN_ARCHETYPE_ICON = HelpCircle;
 export const GENERIC_ARCHETYPE_ICON = Replace;
 
+export const GAME_CLASS_EN_TO_JP: Record<GameClass, string> = {
+  Forestcraft: "エルフ",
+  Swordcraft: "ロイヤル",
+  Runecraft: "ウィッチ",
+  Dragoncraft: "ドラゴン",
+  Shadowcraft: "ネクロマンサー",
+  Bloodcraft: "ヴァンパイア",
+  Havencraft: "ビショップ",
+  Portalcraft: "ネメシス",
+};
+
 
 export const INITIAL_ARCHETYPES: Archetype[] = [
-  // General placeholder for unknown opponent
-  { id: 'unknown', name: 'Unknown Opponent', abbreviation: 'Unk', gameClass: 'Forestcraft', isDefault: true }, // gameClass is arbitrary here
-  // Add a few examples per class
-  // Forestcraft
-  { id: uuidv4(), name: 'Control Forest', abbreviation: 'CtrlF', gameClass: 'Forestcraft', isDefault: true },
-  { id: uuidv4(), name: 'Aggro Forest', abbreviation: 'AgroF', gameClass: 'Forestcraft', isDefault: true },
-  // Swordcraft
-  { id: uuidv4(), name: 'Rally Sword', abbreviation: 'RalS', gameClass: 'Swordcraft', isDefault: true },
-  { id: uuidv4(), name: 'Evo Sword', abbreviation: 'EvoS', gameClass: 'Swordcraft', isDefault: true },
-  // Runecraft
-  { id: uuidv4(), name: 'Spellboost Rune', abbreviation: 'SpbR', gameClass: 'Runecraft', isDefault: true },
-  { id: uuidv4(), name: 'Dirt Rune', abbreviation: 'DirtR', gameClass: 'Runecraft', isDefault: true },
-  // Dragoncraft
-  { id: uuidv4(), name: 'Ramp Dragon', abbreviation: 'RampD', gameClass: 'Dragoncraft', isDefault: true },
-  { id: uuidv4(), name: 'Buff Dragon', abbreviation: 'BuffD', gameClass: 'Dragoncraft', isDefault: true },
-  // Shadowcraft
-  { id: uuidv4(), name: 'Last Words Shadow', abbreviation: 'LWS', gameClass: 'Shadowcraft', isDefault: true },
-  { id: uuidv4(), name: 'Ghost Shadow', abbreviation: 'GhstS', gameClass: 'Shadowcraft', isDefault: true },
-  // Bloodcraft
-  { id: uuidv4(), name: 'Wrath Blood', abbreviation: 'WrthB', gameClass: 'Bloodcraft', isDefault: true },
-  { id: uuidv4(), name: 'Handless Blood', abbreviation: 'HndlB', gameClass: 'Bloodcraft', isDefault: true },
-  // Havencraft
-  { id: uuidv4(), name: 'Heal Haven', abbreviation: 'HealH', gameClass: 'Havencraft', isDefault: true },
-  { id: uuidv4(), name: 'Ward Haven', abbreviation: 'WardH', gameClass: 'Havencraft', isDefault: true },
-  // Portalcraft
-  { id: uuidv4(), name: 'Artifact Portal', abbreviation: 'ArtiP', gameClass: 'Portalcraft', isDefault: true },
-  { id: uuidv4(), name: 'Machina Portal', abbreviation: 'MachP', gameClass: 'Portalcraft', isDefault: true },
+  { id: 'unknown', name: '不明な相手', abbreviation: '不明', gameClass: 'Forestcraft', isDefault: true }, 
+  // エルフ
+  { id: uuidv4(), name: 'コントロールエルフ', abbreviation: 'コンエ', gameClass: 'Forestcraft', isDefault: true },
+  { id: uuidv4(), name: 'アグロエルフ', abbreviation: 'アグエ', gameClass: 'Forestcraft', isDefault: true },
+  // ロイヤル
+  { id: uuidv4(), name: '連携ロイヤル', abbreviation: '連携ロ', gameClass: 'Swordcraft', isDefault: true },
+  { id: uuidv4(), name: '進化ロイヤル', abbreviation: '進化ロ', gameClass: 'Swordcraft', isDefault: true },
+  // ウィッチ
+  { id: uuidv4(), name: 'スペルウィッチ', abbreviation: 'スペウィ', gameClass: 'Runecraft', isDefault: true },
+  { id: uuidv4(), name: '秘術ウィッチ', abbreviation: '秘術ウィ', gameClass: 'Runecraft', isDefault: true },
+  // ドラゴン
+  { id: uuidv4(), name: 'ランプドラゴン', abbreviation: 'ランプド', gameClass: 'Dragoncraft', isDefault: true },
+  { id: uuidv4(), name: 'バフドラゴン', abbreviation: 'バフド', gameClass: 'Dragoncraft', isDefault: true },
+  // ネクロマンサー
+  { id: uuidv4(), name: 'ラストワードネクロ', abbreviation: 'ラスワネ', gameClass: 'Shadowcraft', isDefault: true },
+  { id: uuidv4(), name: 'ゴーストネクロ', abbreviation: 'ゴスネ', gameClass: 'Shadowcraft', isDefault: true },
+  // ヴァンパイア
+  { id: uuidv4(), name: '狂乱ヴァンパイア', abbreviation: '狂乱ヴ', gameClass: 'Bloodcraft', isDefault: true },
+  { id: uuidv4(), name: 'ハンドレスヴァンパイア', abbreviation: 'ハンヴ', gameClass: 'Bloodcraft', isDefault: true },
+  // ビショップ
+  { id: uuidv4(), name: '回復ビショップ', abbreviation: '回復ビ', gameClass: 'Havencraft', isDefault: true },
+  { id: uuidv4(), name: '守護ビショップ', abbreviation: '守護ビ', gameClass: 'Havencraft', isDefault: true },
+  // ネメシス
+  { id: uuidv4(), name: 'AFネメシス', abbreviation: 'AFネメ', gameClass: 'Portalcraft', isDefault: true },
+  { id: uuidv4(), name: '機械ネメシス', abbreviation: '機械ネメ', gameClass: 'Portalcraft', isDefault: true },
 ];
 
 export const getArchetypeWithIcon = (archetype: Archetype): ArchetypeWithIcon => {

@@ -24,9 +24,9 @@ import { ALL_GAME_CLASSES, type GameClass, type Archetype } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 const archetypeFormSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters.").max(50, "Name must be at most 50 characters."),
-  abbreviation: z.string().min(1, "Abbreviation is required.").max(10, "Abbreviation must be at most 10 characters."),
-  gameClass: z.enum(ALL_GAME_CLASSES, { required_error: "Please select a game class." }),
+  name: z.string().min(1, "名前は1文字以上で入力してください。").max(50, "名前は50文字以内で入力してください。"),
+  abbreviation: z.string().min(1, "略称は必須です。").max(10, "略称は10文字以内で入力してください。"),
+  gameClass: z.enum(ALL_GAME_CLASSES.map(gc => gc.value) as [GameClass, ...GameClass[]], { required_error: "クラスを選択してください。" }),
 });
 
 type ArchetypeFormValues = z.infer<typeof archetypeFormSchema>;
@@ -37,7 +37,7 @@ interface ArchetypeFormProps {
   submitButtonText?: string;
 }
 
-export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "Add Archetype" }: ArchetypeFormProps) {
+export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "デッキタイプ追加" }: ArchetypeFormProps) {
   const form = useForm<ArchetypeFormValues>({
     resolver: zodResolver(archetypeFormSchema),
     defaultValues: {
@@ -47,19 +47,23 @@ export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "Add A
     },
   });
 
+  const currentSubmitText = initialData?.id ? "デッキタイプ更新" : submitButtonText;
+
   function handleSubmit(data: ArchetypeFormValues) {
     onSubmit(data);
-    form.reset(); // Reset form after submission
+    if (!initialData?.id) { // Only reset if it's a new archetype form
+        form.reset({ name: "", abbreviation: "", gameClass: undefined });
+    }
   }
 
   return (
     <Card className="w-full max-w-lg mx-auto">
       <CardHeader>
-        <CardTitle>{submitButtonText === "Add Archetype" ? "Propose New Archetype" : "Edit Archetype"}</CardTitle>
+        <CardTitle>{currentSubmitText === "デッキタイプ追加" ? "新規デッキタイプ提案" : "デッキタイプ編集"}</CardTitle>
         <CardDescription>
-          {submitButtonText === "Add Archetype" 
-            ? "Define a new archetype with its name, abbreviation, and class." 
-            : "Update the details for this archetype."}
+          {currentSubmitText === "デッキタイプ追加" 
+            ? "新しいデッキタイプの名前、略称、クラスを定義します。" 
+            : "このデッキタイプの詳細を更新します。"}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -70,9 +74,9 @@ export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "Add A
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Archetype Name</FormLabel>
+                  <FormLabel>デッキタイプ名</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Control Forest" {...field} />
+                    <Input placeholder="例：コントロールエルフ" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -83,9 +87,9 @@ export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "Add A
               name="abbreviation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Abbreviation</FormLabel>
+                  <FormLabel>略称</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., CtrlF" {...field} />
+                    <Input placeholder="例：コンエ" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -96,17 +100,17 @@ export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "Add A
               name="gameClass"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Game Class</FormLabel>
+                  <FormLabel>クラス</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a game class" />
+                        <SelectValue placeholder="クラスを選択" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {ALL_GAME_CLASSES.map((gc) => (
-                        <SelectItem key={gc} value={gc}>
-                          {gc}
+                        <SelectItem key={gc.value} value={gc.value}>
+                          {gc.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -116,7 +120,7 @@ export function ArchetypeForm({ onSubmit, initialData, submitButtonText = "Add A
               )}
             />
             <Button type="submit" className="w-full">
-              {submitButtonText}
+              {currentSubmitText}
             </Button>
           </form>
         </Form>

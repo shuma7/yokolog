@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BarChart3, ListChecks, PlusSquare, Users, Settings, BotMessageSquare } from 'lucide-react';
+import { BarChart3, ListChecks, PlusSquare, BotMessageSquare } from 'lucide-react'; // Home, Users, Settings removed
 import {
   Sidebar,
   SidebarHeader,
@@ -11,18 +11,16 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-  SidebarTrigger,
-} from '@/components/ui/sidebar'; // Assuming this is the correct import from shadcn
+} from '@/components/ui/sidebar'; 
 import { Button } from '@/components/ui/button';
 import { useUsername } from '@/hooks/use-username';
-import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const navItems = [
-  { href: '/log', label: 'User Log', icon: ListChecks },
-  { href: '/matchups', label: 'Matchup Table', icon: BarChart3 },
-  { href: '/matches/new', label: 'Add Match', icon: PlusSquare },
-  { href: '/archetypes/new', label: 'Add Archetype', icon: BotMessageSquare },
+  { href: '/log', label: '対戦記録', icon: ListChecks },
+  { href: '/matchups', label: '相性表', icon: BarChart3 },
+  { href: '/matches/new', label: '対戦追加', icon: PlusSquare },
+  { href: '/archetypes/new', label: 'デッキタイプ追加', icon: BotMessageSquare },
 ];
 
 export function AppSidebar() {
@@ -30,7 +28,7 @@ export function AppSidebar() {
   const { username, setUsername } = useUsername();
 
   const getInitials = (name: string | null) => {
-    if (!name) return 'U';
+    if (!name) return '？';
     return name.substring(0, 2).toUpperCase();
   };
 
@@ -66,13 +64,13 @@ export function AppSidebar() {
       <SidebarFooter className="p-2 mt-auto border-t border-sidebar-border">
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center p-2">
           <Avatar className="h-8 w-8 group-data-[collapsible=icon]:h-7 group-data-[collapsible=icon]:w-7">
-            <AvatarImage src={`https://placehold.co/40x40.png?text=${getInitials(username)}`} alt={username || 'User'} data-ai-hint="avatar user" />
+            <AvatarImage src={`https://placehold.co/40x40.png?text=${getInitials(username)}`} alt={username || 'ユーザー'} data-ai-hint="avatar user" />
             <AvatarFallback>{getInitials(username)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-medium">{username || 'Guest Mode'}</span>
+            <span className="text-sm font-medium">{username || 'ゲストモード'}</span>
              <Button variant="link" size="sm" className="p-0 h-auto text-xs text-muted-foreground hover:text-accent" onClick={() => setUsername(null)}>
-              Change User
+              ユーザー変更
             </Button>
           </div>
         </div>
