@@ -84,18 +84,20 @@ export function UserLogTable({
   const headerPaddingX = isMinimal ? 'px-1' : 'px-2';
   const headerFontSize = isMinimal ? 'text-[10px]' : 'text-sm'; 
   
-  const cellIconSize = isMinimal ? 'h-3 w-3' : 'h-4 w-4'; 
-  const actionIconSize = isMinimal ? 'h-3 w-3' : 'h-4 w-4'; 
+  const cellIconSize = isMinimal ? 'h-3 w-3' : 'h-3 w-3'; // Adjusted for personal log
+  const actionIconSize = isMinimal ? 'h-3 w-3' : 'h-3 w-3'; // Adjusted for personal log
   
   const actionButtonBaseClasses = "variant=\"ghost\""; 
   const actionButtonSizeClasses = isMinimal 
     ? "p-0.5 h-5 w-5 flex items-center justify-center" 
-    : "p-0.5 h-6 w-6 flex items-center justify-center"; 
+    : "p-0.5 h-5 w-5 flex items-center justify-center"; // Adjusted for personal log
 
   const badgeBaseClasses = "capitalize";
   const badgeStyleClasses = isMinimal 
     ? "px-1 py-0 text-[9px] leading-tight" 
     : "px-1.5 py-0 text-[11px] leading-tight"; 
+
+  const tableCellTextClasses = isMinimal ? "" : "leading-tight";
 
   return (
     <TooltipProvider>
@@ -103,13 +105,13 @@ export function UserLogTable({
         <Table className={fontSize}>
           <TableHeader>
             <TableRow>
-              <TableHead className={cn("sticky top-0 bg-card z-10 w-[60px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize)}>番号</TableHead>
-              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[150px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize)}>自分のデッキタイプ</TableHead>
-              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[150px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize)}>相手のデッキタイプ</TableHead>
-              <TableHead className={cn("sticky top-0 bg-card z-10 w-[70px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize)}>先後</TableHead>
-              <TableHead className={cn("sticky top-0 bg-card z-10 w-[70px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize)}>勝敗</TableHead>
-              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[150px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize)}>メモ</TableHead>
-              <TableHead className={cn("sticky top-0 bg-card z-10 text-right w-[100px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize)}>操作</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 w-[60px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>番号</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[150px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>自分のデッキタイプ</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[150px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>相手のデッキタイプ</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 w-[70px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>先後</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 w-[70px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>勝敗</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 min-w-[150px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>メモ</TableHead>
+              <TableHead className={cn("sticky top-0 bg-card z-10 text-right w-[100px]", headerHeight, headerPaddingY, headerPaddingX, headerFontSize, tableCellTextClasses)}>操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -129,29 +131,29 @@ export function UserLogTable({
 
               return (
                 <TableRow key={match.id} className="hover:bg-muted/50">
-                  <TableCell className={cn(cellPaddingY, cellPaddingX)}>{matchNumber}</TableCell>
-                  <TableCell className={cn(cellPaddingY, cellPaddingX)}>
+                  <TableCell className={cn(cellPaddingY, cellPaddingX, tableCellTextClasses)}>{matchNumber}</TableCell>
+                  <TableCell className={cn(cellPaddingY, cellPaddingX, tableCellTextClasses)}>
                     <div className="flex items-center gap-1">
                       <UserIcon className={cn(cellIconSize, "text-muted-foreground")} />
                       {userArchetype ? formatArchetypeNameWithSuffix(userArchetype) : '不明'}
                     </div>
                   </TableCell>
-                  <TableCell className={cn(cellPaddingY, cellPaddingX)}>
+                  <TableCell className={cn(cellPaddingY, cellPaddingX, tableCellTextClasses)}>
                     <div className="flex items-center gap-1">
                       <OpponentIcon className={cn(cellIconSize, "text-muted-foreground")} />
                       {opponentArchetype ? formatArchetypeNameWithSuffix(opponentArchetype) : '不明'}
                     </div>
                   </TableCell>
-                  <TableCell className={cn(cellPaddingY, cellPaddingX)}>{getTurnText(match.turn)}</TableCell>
-                  <TableCell className={cn(cellPaddingY, cellPaddingX)}>
+                  <TableCell className={cn(cellPaddingY, cellPaddingX, tableCellTextClasses)}>{getTurnText(match.turn)}</TableCell>
+                  <TableCell className={cn(cellPaddingY, cellPaddingX, tableCellTextClasses)}>
                     <Badge variant={match.result === 'win' ? 'default' : 'destructive'}
                           className={cn(badgeBaseClasses, badgeStyleClasses, 
                                       match.result === 'win' ? 'bg-lime-500 hover:bg-lime-600 text-white' : 'bg-red-600 hover:bg-red-700 text-white')}>
                       {getResultText(match.result)}
                     </Badge>
                   </TableCell>
-                  <TableCell className={cn("max-w-[150px] truncate", cellPaddingY, cellPaddingX)} title={match.notes || undefined}>{match.notes || '-'}</TableCell>
-                  <TableCell className={cn("text-right", cellPaddingY, cellPaddingX)}>
+                  <TableCell className={cn("max-w-[150px] truncate", cellPaddingY, cellPaddingX, tableCellTextClasses)} title={match.notes || undefined}>{match.notes || '-'}</TableCell>
+                  <TableCell className={cn("text-right", cellPaddingY, cellPaddingX, tableCellTextClasses)}>
                     {isReadOnly ? (
                        <Tooltip>
                         <TooltipTrigger asChild>
