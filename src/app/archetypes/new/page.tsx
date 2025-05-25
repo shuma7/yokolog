@@ -4,7 +4,7 @@ import { ArchetypeForm } from "@/components/forms/archetype-form";
 import { MainHeader } from "@/components/layout/main-header";
 import { useArchetypeManager } from "@/hooks/use-archetype-manager";
 import { useToast } from "@/hooks/use-toast";
-import type { GameClass }okalistedArchetype } from "@/types";
+import type { GameClass } from "@/types";
 
 export default function AddArchetypePage() {
   const { addArchetype } = useArchetypeManager();
