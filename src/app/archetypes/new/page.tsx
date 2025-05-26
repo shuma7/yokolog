@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -36,10 +37,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit3, Trash2 } from "lucide-react";
-import { CLASS_ICONS, formatArchetypeNameWithSuffix, UNKNOWN_ARCHETYPE_ICON, getJapaneseClassNameFromValue } from "@/lib/game-data";
+import { CLASS_ICONS, formatArchetypeNameWithSuffix, getJapaneseClassNameFromValue } from "@/lib/game-data";
 import type { MatchData } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSeasonManager } from "@/hooks/useSeasonManager";
+import { Card, CardContent as UiCardContent, CardHeader as UiCardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from "@/components/ui/card";
 
 
 export default function ManageArchetypesPage() {
@@ -106,6 +108,8 @@ export default function ManageArchetypesPage() {
   };
 
   const handleDelete = (archetypeToDelete: Archetype) => {
+    // "unknown" archetype should not be deletable from UI if it were to appear here.
+    // However, it's filtered out from the main list, so this is a safeguard.
     if (archetypeToDelete.id === 'unknown') {
       toast({
         title: "エラー",
@@ -115,8 +119,10 @@ export default function ManageArchetypesPage() {
       return;
     }
     try {
+      // Find the 'unknown' archetype ID for migrating records.
       const unknownArchetypeId = archetypes.find(a => a.id === 'unknown')?.id || 'unknown';
 
+      // Update logs for all users
       discoveredUserKeys.forEach(userKey => {
         const item = localStorage.getItem(userKey);
         let userMatches: MatchData[] = item ? JSON.parse(item) : [];
@@ -146,6 +152,7 @@ export default function ManageArchetypesPage() {
 
       deleteArchetype(archetypeToDelete.id);
 
+      // Update local state for match counts
       const newAllMatchesForCounts = allMatchesForCounts.map(match => {
         let newMatch = { ...match };
         if (match.userArchetypeId === archetypeToDelete.id) newMatch.userArchetypeId = unknownArchetypeId;
@@ -175,6 +182,7 @@ export default function ManageArchetypesPage() {
   const handleSubmitForm = (data: { name: string; gameClass: GameClass }) => {
     try {
       if (currentArchetype && currentArchetype.id) {
+        // Editing existing archetype (including 'unknown' if it were editable here)
         const updated: Archetype = {
             ...(currentArchetype as Archetype), // Cast is safe here due to currentArchetype.id check
             name: data.name,
@@ -186,6 +194,7 @@ export default function ManageArchetypesPage() {
           description: `「${formatArchetypeNameWithSuffix(updated)}」を更新しました。`,
         });
       } else {
+        // Adding new archetype
         const newArchetype = addArchetype(data.name, data.gameClass);
         toast({
           title: "追加完了",
@@ -194,11 +203,11 @@ export default function ManageArchetypesPage() {
       }
       setIsDialogOpen(false);
       setCurrentArchetype(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("デッキタイプの保存に失敗しました:", error);
       toast({
         title: "エラー",
-        description: "デッキタイプを保存できませんでした。もう一度お試しください。",
+        description: error.message || "デッキタイプを保存できませんでした。もう一度お試しください。",
         variant: "destructive",
       });
     }
@@ -207,6 +216,7 @@ export default function ManageArchetypesPage() {
   const archetypesByClass = useMemo(() => {
     const grouped: Record<GameClass, Archetype[]> = {} as Record<GameClass, Archetype[]>;
     ALL_GAME_CLASSES.forEach(gc => {
+      // Filter out 'unknown' archetype here
       grouped[gc.value] = archetypes
         .filter(arch => arch.id !== 'unknown' && arch.gameClass === gc.value)
         .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
@@ -248,6 +258,10 @@ export default function ManageArchetypesPage() {
       </div>
     );
   }
+  
+  const userDefinedArchetypesExist = useMemo(() => {
+    return archetypes.some(arch => arch.id !== 'unknown');
+  }, [archetypes]);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -266,7 +280,7 @@ export default function ManageArchetypesPage() {
           {ALL_GAME_CLASSES.map((gameClassDetail) => {
             const classArchetypes = archetypesByClass[gameClassDetail.value];
             if (!classArchetypes || classArchetypes.length === 0) {
-              return null;
+              return null; // Do not render section if no archetypes for this class (excluding 'unknown')
             }
             const ClassIcon = CLASS_ICONS[gameClassDetail.value];
 
@@ -279,11 +293,18 @@ export default function ManageArchetypesPage() {
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
-                      <TableRow><TableHead className="w-[60%]">デッキタイプ名</TableHead><TableHead className="text-center">総試合数 (全期間)</TableHead><TableHead className="text-right">操作</TableHead></TableRow>
+                      <TableRow>
+                        <TableHead className="w-[60%]">デッキタイプ名</TableHead>
+                        <TableHead className="text-center">総試合数 (全期間)</TableHead>
+                        <TableHead className="text-right">操作</TableHead>
+                      </TableRow>
                     </TableHeader>
                     <TableBody>
                       {classArchetypes.map((archetype) => (
-                        <TableRow key={archetype.id}><TableCell className="font-medium">{formatArchetypeNameWithSuffix(archetype)}</TableCell><TableCell className="text-center">{getMatchCount(archetype.id)}</TableCell><TableCell className="text-right">
+                        <TableRow key={archetype.id}>
+                          <TableCell className="font-medium">{formatArchetypeNameWithSuffix(archetype)}</TableCell>
+                          <TableCell className="text-center">{getMatchCount(archetype.id)}</TableCell>
+                          <TableCell className="text-right">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -320,7 +341,8 @@ export default function ManageArchetypesPage() {
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
-                          </TableCell></TableRow>
+                          </TableCell>
+                        </TableRow>
                       ))}
                     </TableBody>
                   </Table>
@@ -329,46 +351,9 @@ export default function ManageArchetypesPage() {
             );
           })}
 
-           {(() => {
-             const unknownArchetype = archetypes.find(a => a.id === 'unknown');
-             if (unknownArchetype) {
-               const UnknownClassIcon = CLASS_ICONS[unknownArchetype.gameClass] || UNKNOWN_ARCHETYPE_ICON;
-               return (
-                 <section key="unknown-section" className="mb-8 pt-4 border-t">
-                   <h2 className="text-xl font-semibold mb-3 flex items-center">
-                     <UnknownClassIcon className="mr-2 h-6 w-6 text-muted-foreground" />
-                     その他 (不明な相手)
-                   </h2>
-                   <div className="rounded-md border">
-                     <Table>
-                       <TableHeader>
-                         <TableRow><TableHead className="w-[60%]">デッキタイプ名</TableHead><TableHead className="text-center">総試合数 (全期間)</TableHead><TableHead className="text-right">操作</TableHead></TableRow>
-                       </TableHeader>
-                       <TableBody>
-                         <TableRow key={unknownArchetype.id}><TableCell className="font-medium">{formatArchetypeNameWithSuffix(unknownArchetype)}</TableCell><TableCell className="text-center">{getMatchCount(unknownArchetype.id)}</TableCell><TableCell className="text-right">
-                             <Button
-                               variant="ghost"
-                               size="icon"
-                               onClick={() => handleEdit(unknownArchetype)}
-                               className="mr-1 text-primary hover:text-primary/80"
-                               title="編集"
-                             >
-                               <Edit3 className="h-4 w-4" />
-                             </Button>
-                             <span className="text-xs text-muted-foreground italic mr-2">削除不可</span>
-                           </TableCell></TableRow>
-                       </TableBody>
-                     </Table>
-                   </div>
-                 </section>
-               );
-             }
-             return null;
-           })()}
-
-           {archetypes.filter(a => a.id !== 'unknown').length === 0 && (
+           {!userDefinedArchetypesExist && (
               <div className="text-center text-muted-foreground py-8">
-                「不明な相手」以外のデッキタイプはまだ登録されていません。「新規デッキタイプ追加」ボタンから追加できます。
+                デッキタイプはまだ登録されていません。「新規デッキタイプ追加」ボタンから追加できます。
               </div>
            )}
         </div>
@@ -376,7 +361,7 @@ export default function ManageArchetypesPage() {
 
       <Dialog open={isDialogOpen} onOpenChange={(open) => {
         if (!open) {
-          setCurrentArchetype(null);
+          setCurrentArchetype(null); // Clear currentArchetype when dialog closes
         }
         setIsDialogOpen(open);
       }}>
@@ -385,17 +370,17 @@ export default function ManageArchetypesPage() {
             <DialogTitle>{currentArchetype?.id ? "デッキタイプ編集" : "新規デッキタイプ追加"}</DialogTitle>
             <DialogDescription>
               {currentArchetype?.id ? "デッキタイプの詳細を編集します。" : "新しいデッキタイプを登録します。"}
-              {currentArchetype?.id === 'unknown' && " 「不明な相手」のIDは変更できませんが、名前とクラスは変更可能です。"}
             </DialogDescription>
           </DialogHeader>
           <ArchetypeForm
             onSubmit={handleSubmitForm}
-            initialData={currentArchetype || undefined}
+            initialData={currentArchetype || undefined} // Pass currentArchetype or undefined
             submitButtonText={currentArchetype?.id ? "更新" : "追加"}
-            isEditingUnknown={currentArchetype?.id === 'unknown'}
+            isEditingUnknown={false} // 'unknown' is not editable from this UI flow
           />
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+
