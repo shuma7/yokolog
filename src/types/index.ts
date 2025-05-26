@@ -1,13 +1,13 @@
 
 import type { LucideIcon } from 'lucide-react';
 
-export type GameClass = 
-  | "Forestcraft" 
-  | "Swordcraft" 
-  | "Runecraft" 
-  | "Dragoncraft" 
+export type GameClass =
+  | "Forestcraft"
+  | "Swordcraft"
+  | "Runecraft"
+  | "Dragoncraft"
   | "Nightmare"
-  | "Havencraft" 
+  | "Havencraft"
   | "Portalcraft";
 
 export interface GameClassDetail {
@@ -26,21 +26,22 @@ export const ALL_GAME_CLASSES: GameClassDetail[] = [
 ];
 
 export interface Archetype {
-  id: string; 
-  name: string; 
+  id: string;
+  name: string;
   gameClass: GameClass;
-  isDefault?: boolean; 
+  isDefault?: boolean;
 }
 
 export interface MatchData {
-  id: string; 
-  timestamp: number; 
-  userArchetypeId: string; 
-  opponentArchetypeId: string; 
+  id: string;
+  timestamp: number;
+  userArchetypeId: string;
+  opponentArchetypeId: string;
   turn: "first" | "second" | "unknown";
   result: "win" | "loss";
   notes?: string;
-  userId: string; 
+  userId: string;
+  seasonId?: string; // Added for season tracking
 }
 
 export interface ArchetypeWithIcon extends Archetype {
@@ -59,3 +60,9 @@ export interface ClassIconMapping {
 
 export type GameClassNameMap = Record<GameClass, string>;
 
+export interface Season {
+  id: string;
+  name: string;
+  startDate: number;
+  endDate: number | null; // null for active season
+}

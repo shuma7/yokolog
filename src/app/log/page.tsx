@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { MainHeader } from "@/components/layout/main-header";
 import { useMatchLogger } from "@/hooks/use-match-logger";
 import { useArchetypeManager } from "@/hooks/use-archetype-manager";
@@ -23,22 +23,35 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useUsername } from "@/hooks/use-username";
+import { useSeasonManager } from "@/hooks/useSeasonManager";
+import { SeasonSelector } from "@/components/stats/season-selector";
+import { Card, CardContent, CardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from "@/components/ui/card"; // Renamed to avoid conflict
+import { Skeleton } from "@/components/ui/skeleton";
+
 
 export default function PersonalLogPage() {
-  const { matches, deleteMatch, updateMatch } = useMatchLogger();
+  const { matches, isLoadingMatches, deleteMatch, updateMatch } = useMatchLogger();
   const { archetypes } = useArchetypeManager();
   const { toast } = useToast();
-  const { username } = useUsername(); 
+  const { username } = useUsername();
+  const { 
+    selectedSeasonId, 
+    setSelectedSeasonId, 
+    getAllSeasons, 
+    isLoadingSeasons,
+    getSelectedSeason,
+    formatDateForSeasonName 
+  } = useSeasonManager();
 
   const [editingMatch, setEditingMatch] = useState<MatchData | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const gameClassMapping: GameClassNameMap = GAME_CLASS_EN_TO_JP;
+  const currentSelectedSeason = getSelectedSeason();
 
   const currentUserMatches = useMemo(() => {
     if (!username) return [];
-    return [...matches] 
-             .sort((a, b) => b.timestamp - a.timestamp);
+    return [...matches].sort((a, b) => b.timestamp - a.timestamp);
   }, [matches, username]);
 
   const handleDeleteMatch = (matchId: string) => {
@@ -63,16 +76,18 @@ export default function PersonalLogPage() {
   };
 
   const handleUpdateMatchSubmit = (data: MatchFormValues) => {
-    if (editingMatch && username) { 
+    if (editingMatch && username) {
       try {
         const updatedMatchData: MatchData = {
           ...editingMatch,
-          userId: username, 
+          userId: username,
           userArchetypeId: data.userArchetypeId,
           opponentArchetypeId: data.opponentArchetypeId,
           turn: data.turn,
           result: data.result,
           notes: data.notes,
+          // seasonId should be preserved from editingMatch or re-assigned if necessary
+          seasonId: editingMatch.seasonId || getSelectedSeason()?.id 
         };
         updateMatch(updatedMatchData);
         toast({
@@ -91,6 +106,22 @@ export default function PersonalLogPage() {
       }
     }
   };
+  
+  if (isLoadingMatches || isLoadingSeasons) {
+    return (
+        <div className="flex flex-1 flex-col">
+        <MainHeader title="個人ログ" />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+          <div className="container mx-auto space-y-4">
+            <Skeleton className="h-12 w-1/2" /> {/* Season Selector Skeleton */}
+            <Skeleton className="h-10 w-full" /> {/* Tabs Skeleton */}
+            <Skeleton className="h-64 w-full" /> {/* Table/Stats Skeleton */}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex flex-1 flex-col">
@@ -106,6 +137,21 @@ export default function PersonalLogPage() {
       />
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="container mx-auto">
+          <Card className="mb-6">
+            <CardHeader>
+              <UiCardTitle>シーズン選択</UiCardTitle>
+              <UiCardDescription>表示するシーズンを選択してください。現在のシーズン: {currentSelectedSeason ? currentSelectedSeason.name : '読み込み中...'}</UiCardDescription>
+            </CardHeader>
+            <CardContent>
+               <SeasonSelector
+                seasons={getAllSeasons()}
+                selectedSeasonId={selectedSeasonId}
+                onSelectSeason={setSelectedSeasonId}
+                formatDate={formatDateForSeasonName}
+              />
+            </CardContent>
+          </Card>
+
           {!username ? (
             <p className="text-center text-muted-foreground">ユーザー名が設定されていません。先にユーザー名を設定してください。</p>
           ) : (
@@ -115,15 +161,15 @@ export default function PersonalLogPage() {
                 <TabsTrigger value="summary-data">集計データ</TabsTrigger>
               </TabsList>
               <TabsContent value="log-list" className="mt-6">
-                <div className="max-h-[calc(100vh-220px)] overflow-y-auto"> {/* Adjusted max-h here */}
+                <div className="max-h-[calc(100vh-300px)] overflow-y-auto"> {/* Adjusted max-h */}
                   <UserLogTable
                     matches={currentUserMatches}
                     archetypes={archetypes}
                     onDeleteMatch={handleDeleteMatch}
                     onEditRequest={handleEditRequest}
                     gameClassMapping={gameClassMapping}
-                    isReadOnly={false} 
-                    isMinimal={false} // Use standard compact styling for personal log
+                    isReadOnly={false}
+                    isMinimal={false}
                   />
                 </div>
               </TabsContent>

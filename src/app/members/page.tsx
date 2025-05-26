@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { MainHeader } from "@/components/layout/main-header";
 import { useArchetypeManager } from "@/hooks/use-archetype-manager";
 import { UserLogTable } from "@/components/data-tables/user-log-table";
@@ -9,7 +9,7 @@ import { MemberVictoryRankings } from "@/components/stats/member-victory-ranking
 import { useToast } from "@/hooks/use-toast";
 import { GAME_CLASS_EN_TO_JP } from "@/lib/game-data";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { MatchData, GameClassNameMap, Archetype } from "@/types";
+import type { MatchData, GameClassNameMap } from "@/types";
 import {
   Select,
   SelectContent,
@@ -18,25 +18,41 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardDescription, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useUsername } from "@/hooks/use-username";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSeasonManager } from "@/hooks/useSeasonManager";
+import { SeasonSelector } from "@/components/stats/season-selector";
+
 
 export default function MembersPage() {
   const { archetypes } = useArchetypeManager();
   const { toast } = useToast();
   const { username: currentUsername } = useUsername();
+  const { 
+    selectedSeasonId, 
+    setSelectedSeasonId, 
+    getAllSeasons, 
+    startNewSeason, 
+    isLoadingSeasons,
+    getSelectedSeason,
+    formatDateForSeasonName
+  } = useSeasonManager();
 
   const [discoveredUsers, setDiscoveredUsers] = useState<string[]>([]);
-  const [selectedUsername, setSelectedUsername] = useState<string>("");
-  const [selectedUserMatches, setSelectedUserMatches] = useState<MatchData[]>([]);
-  const [allUsersMatches, setAllUsersMatches] = useState<MatchData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedLogUsername, setSelectedLogUsername] = useState<string>("");
+  const [selectedUserMatchesForLog, setSelectedUserMatchesForLog] = useState<MatchData[]>([]);
+  const [allUsersAllMatches, setAllUsersAllMatches] = useState<MatchData[]>([]);
+  const [isLoadingPageData, setIsLoadingPageData] = useState(true);
   const [isMemberLogLoading, setIsMemberLogLoading] = useState(false);
 
   const gameClassMapping: GameClassNameMap = GAME_CLASS_EN_TO_JP;
+  const currentSelectedSeason = getSelectedSeason();
 
   useEffect(() => {
-    setIsLoading(true);
+    if (isLoadingSeasons) return;
+    setIsLoadingPageData(true);
     const users: string[] = [];
     const allMatches: MatchData[] = [];
     if (typeof window !== 'undefined') {
@@ -44,14 +60,26 @@ export default function MembersPage() {
         const key = localStorage.key(i);
         if (key && key.startsWith('yokolog_match_logs_')) {
           const user = key.replace('yokolog_match_logs_', '');
-          if (user) { 
+          if (user) {
             users.push(user);
             try {
               const item = localStorage.getItem(key);
-              const userMatches = item ? JSON.parse(item) : [];
-              if (Array.isArray(userMatches)) {
-                allMatches.push(...userMatches.map(m => ({...m, userId: m.userId || user })));
+              const userMatches: MatchData[] = item ? JSON.parse(item) : [];
+              // Migrate old matches to oldest season if seasonId is missing
+              const seasons = getAllSeasons();
+              const oldestSeason = seasons.length > 0 ? seasons[seasons.length - 1] : null;
+              let userMatchesChanged = false;
+              const migratedUserMatches = userMatches.map(m => {
+                if (!m.seasonId && oldestSeason) {
+                  userMatchesChanged = true;
+                  return {...m, userId: m.userId || user, seasonId: oldestSeason.id };
+                }
+                return {...m, userId: m.userId || user };
+              });
+              if(userMatchesChanged) {
+                localStorage.setItem(key, JSON.stringify(migratedUserMatches));
               }
+              allMatches.push(...migratedUserMatches);
             } catch (e) {
               console.error(`Failed to parse matches for user ${user}:`, e);
             }
@@ -61,47 +89,44 @@ export default function MembersPage() {
     }
     const sortedUsers = users.sort((a, b) => a.localeCompare(b));
     setDiscoveredUsers(sortedUsers);
-    setAllUsersMatches(allMatches);
+    setAllUsersAllMatches(allMatches);
 
     if (currentUsername && sortedUsers.includes(currentUsername)) {
-      setSelectedUsername(currentUsername);
+      setSelectedLogUsername(currentUsername);
     } else if (sortedUsers.length > 0) {
-      setSelectedUsername(sortedUsers[0]);
+      setSelectedLogUsername(sortedUsers[0]);
     }
-    setIsLoading(false);
-  }, [currentUsername]);
+    setIsLoadingPageData(false);
+  }, [currentUsername, isLoadingSeasons, getAllSeasons]); // Add getAllSeasons to dependencies
 
   useEffect(() => {
-    if (selectedUsername && typeof window !== 'undefined') {
+    if (selectedLogUsername && selectedSeasonId && typeof window !== 'undefined') {
       setIsMemberLogLoading(true);
-      const item = localStorage.getItem(`yokolog_match_logs_${selectedUsername}`);
-      const matchesRaw = item ? JSON.parse(item) : [];
-      const matchesWithUserId = matchesRaw.map((m: MatchData) => ({...m, userId: m.userId || selectedUsername }));
-      const sortedMatches = [...matchesWithUserId].sort((a,b) => b.timestamp - a.timestamp);
-      setSelectedUserMatches(sortedMatches);
+      const item = localStorage.getItem(`yokolog_match_logs_${selectedLogUsername}`);
+      const matchesRaw: MatchData[] = item ? JSON.parse(item) : [];
+      // Filter by selected season and ensure userId
+      const seasonMatches = matchesRaw
+        .map(m => ({...m, userId: m.userId || selectedLogUsername }))
+        .filter(m => m.seasonId === selectedSeasonId);
+      const sortedMatches = [...seasonMatches].sort((a,b) => b.timestamp - a.timestamp);
+      setSelectedUserMatchesForLog(sortedMatches);
       setIsMemberLogLoading(false);
     } else {
-      setSelectedUserMatches([]);
+      setSelectedUserMatchesForLog([]);
     }
-  }, [selectedUsername]);
+  }, [selectedLogUsername, selectedSeasonId]);
 
-  const handleDeleteMatch = (matchId: string) => {
-     toast({
-        title: "操作不可",
-        description: "他のユーザーのログはここから削除できません。",
-        variant: "destructive",
-      });
+  const handleStartNewSeason = () => {
+    startNewSeason();
+    toast({
+      title: "新シーズン開始",
+      description: "新しいシーズンが開始されました。記録は新しいシーズンに保存されます。",
+    });
   };
+  
+  const matchesForCurrentSeasonRankings = allUsersAllMatches.filter(m => m.seasonId === selectedSeasonId);
 
-  const handleEditRequest = (match: MatchData) => {
-     toast({
-        title: "操作不可",
-        description: "他のユーザーのログはここから編集できません。",
-        variant: "destructive",
-      });
-  };
-
-  if (isLoading) {
+  if (isLoadingPageData || isLoadingSeasons) {
     return (
       <div className="flex flex-1 flex-col">
         <MainHeader title="メンバーデータ" />
@@ -130,6 +155,21 @@ export default function MembersPage() {
       <MainHeader title="メンバーデータ" />
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="container mx-auto">
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>シーズン選択</CardTitle>
+              <CardDescription>表示するシーズンを選択してください。現在のシーズン: {currentSelectedSeason ? currentSelectedSeason.name : '読み込み中...'}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SeasonSelector
+                seasons={getAllSeasons()}
+                selectedSeasonId={selectedSeasonId}
+                onSelectSeason={setSelectedSeasonId}
+                formatDate={formatDateForSeasonName}
+              />
+            </CardContent>
+          </Card>
+
           <Tabs defaultValue="victory-rankings">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="victory-rankings">勝利数ランキング</TabsTrigger>
@@ -141,13 +181,14 @@ export default function MembersPage() {
                     <CardTitle>ユーザー別 勝利数ランキング</CardTitle>
                     <CardDescription>
                         各クラスおよびデッキタイプごとの、全ユーザーの勝利数ランキングです。
+                        現在の表示シーズン: {currentSelectedSeason ? currentSelectedSeason.name : 'N/A'}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <MemberVictoryRankings 
-                        matches={allUsersMatches} 
-                        allArchetypes={archetypes} 
-                        gameClassMapping={gameClassMapping} 
+                    <MemberVictoryRankings
+                        matches={matchesForCurrentSeasonRankings}
+                        allArchetypes={archetypes}
+                        gameClassMapping={gameClassMapping}
                     />
                 </CardContent>
                </Card>
@@ -157,13 +198,13 @@ export default function MembersPage() {
                 <CardHeader>
                   <CardTitle>メンバーログ表示</CardTitle>
                    <CardDescription>
-                    表示したいメンバーを選択してください。
+                    表示したいメンバーを選択してください。現在の表示シーズン: {currentSelectedSeason ? currentSelectedSeason.name : 'N/A'}
                   </CardDescription>
                 </CardHeader>
                  <CardContent>
-                    <Select 
-                        value={selectedUsername} 
-                        onValueChange={setSelectedUsername}
+                    <Select
+                        value={selectedLogUsername}
+                        onValueChange={setSelectedLogUsername}
                         disabled={discoveredUsers.length === 0}
                     >
                         <SelectTrigger className="w-full md:w-[280px]">
@@ -178,20 +219,20 @@ export default function MembersPage() {
                     </Select>
                  </CardContent>
               </Card>
-              
-              <div className="max-h-[calc(100vh-330px)] overflow-y-auto">
+
+              <div className="max-h-[calc(100vh-400px)] overflow-y-auto"> {/* Adjusted height */}
                 {isMemberLogLoading ? (
                   <div className="space-y-2 mt-4">
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
                   </div>
-                ) : selectedUsername ? (
+                ) : selectedLogUsername ? (
                   <UserLogTable
-                    matches={selectedUserMatches}
+                    matches={selectedUserMatchesForLog}
                     archetypes={archetypes}
-                    onDeleteMatch={handleDeleteMatch}
-                    onEditRequest={handleEditRequest}
+                    onDeleteMatch={() => toast({ title: "操作不可", description: "他ユーザーのログは削除できません。", variant: "destructive"})}
+                    onEditRequest={() => toast({ title: "操作不可", description: "他ユーザーのログは編集できません。", variant: "destructive"})}
                     gameClassMapping={gameClassMapping}
-                    isReadOnly={selectedUsername !== currentUsername}
+                    isReadOnly={selectedLogUsername !== currentUsername}
                     isMinimal={true}
                   />
                 ) : (
@@ -202,6 +243,30 @@ export default function MembersPage() {
               </div>
             </TabsContent>
           </Tabs>
+
+          <div className="mt-10 flex justify-center">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="lg">新しいシーズンを開始</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>新しいシーズンを開始しますか？</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    現在のシーズンが終了し、新しいシーズンが開始されます。
+                    現在のシーズンの記録は過去のデータとして保存されます。
+                    この操作は元に戻せません。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleStartNewSeason} className="bg-destructive hover:bg-destructive/80">
+                    開始する
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </main>
     </div>
