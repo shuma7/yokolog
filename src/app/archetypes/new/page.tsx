@@ -40,20 +40,17 @@ import { CLASS_ICONS, formatArchetypeNameWithSuffix, UNKNOWN_ARCHETYPE_ICON, get
 import type { MatchData } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSeasonManager } from "@/hooks/useSeasonManager";
-import { SeasonSelector } from "@/components/stats/season-selector";
-import { Card, CardContent as UiCardContent, CardHeader as UiCardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from "@/components/ui/card";
+// Removed SeasonSelector import
+// import { Card, CardContent as UiCardContent, CardHeader as UiCardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from "@/components/ui/card";
 
 
 export default function ManageArchetypesPage() {
   const { archetypes, addArchetype, updateArchetype, deleteArchetype } = useArchetypeManager();
   const { toast } = useToast();
+  // Only get what's needed for initial data load and migration
   const { 
-    selectedSeasonId, 
-    setSelectedSeasonId, 
     getAllSeasons, 
     isLoadingSeasons,
-    getSelectedSeason,
-    formatDateForSeasonName 
   } = useSeasonManager();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -61,10 +58,10 @@ export default function ManageArchetypesPage() {
   const [allMatchesForCounts, setAllMatchesForCounts] = useState<MatchData[]>([]);
   const [discoveredUserKeys, setDiscoveredUserKeys] = useState<string[]>([]);
   const [isLoadingPageData, setIsLoadingPageData] = useState(true);
-  const currentSelectedSeason = getSelectedSeason();
+  // Removed currentSelectedSeason
 
   useEffect(() => {
-    if (isLoadingSeasons) return;
+    if (isLoadingSeasons) return; // Still wait for seasons data for migration logic
     setIsLoadingPageData(true);
     const collectedMatches: MatchData[] = [];
     const userLogKeys: string[] = [];
@@ -76,8 +73,8 @@ export default function ManageArchetypesPage() {
           try {
             const item = localStorage.getItem(key);
             const userMatches: MatchData[] = item ? JSON.parse(item) : [];
-            // Migrate old matches if seasonId is missing
-            const seasons = getAllSeasons();
+            
+            const seasons = getAllSeasons(); // Needed for migration
             const oldestSeason = seasons.length > 0 ? seasons[seasons.length - 1] : null;
             let userMatchesChanged = false;
             const migratedUserMatches = userMatches.map(m => {
@@ -98,14 +95,10 @@ export default function ManageArchetypesPage() {
       }
     }
     setDiscoveredUserKeys(userLogKeys);
-    // Filter by selected season
-    if (selectedSeasonId) {
-        setAllMatchesForCounts(collectedMatches.filter(m => m.seasonId === selectedSeasonId));
-    } else {
-        setAllMatchesForCounts([]);
-    }
+    // No longer filter by selectedSeasonId for counts
+    setAllMatchesForCounts(collectedMatches);
     setIsLoadingPageData(false);
-  }, [selectedSeasonId, isLoadingSeasons, getAllSeasons]);
+  }, [isLoadingSeasons, getAllSeasons]); // Removed selectedSeasonId from dependencies
 
   const handleAddNew = () => {
     setCurrentArchetype(null);
@@ -158,7 +151,6 @@ export default function ManageArchetypesPage() {
 
       deleteArchetype(archetypeToDelete.id);
 
-      // Re-filter allMatchesForCounts for the current season
       const newAllMatchesForCounts = allMatchesForCounts.map(match => {
         let newMatch = { ...match };
         if (match.userArchetypeId === archetypeToDelete.id) newMatch.userArchetypeId = unknownArchetypeId;
@@ -231,7 +223,7 @@ export default function ManageArchetypesPage() {
     return allMatchesForCounts.filter(match => match.userArchetypeId === archetypeId || match.opponentArchetypeId === archetypeId).length;
   };
 
-  if (isLoadingPageData || isLoadingSeasons) {
+  if (isLoadingPageData || isLoadingSeasons) { // Still check isLoadingSeasons for the initial data fetch
     return (
       <div className="flex flex-1 flex-col">
         <MainHeader
@@ -245,7 +237,7 @@ export default function ManageArchetypesPage() {
         />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           <div className="container mx-auto space-y-6">
-            <Skeleton className="h-12 w-1/2" /> {/* Season Selector Skeleton */}
+            {/* Removed Season Selector Skeleton */}
             {[...Array(3)].map((_, i) => (
               <section key={i} className="mb-8">
                 <Skeleton className="h-7 w-1/4 mb-3" /> {/* Class Title Skeleton */}
@@ -276,20 +268,7 @@ export default function ManageArchetypesPage() {
       />
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="container mx-auto">
-          <Card className="mb-6">
-            <UiCardHeader>
-              <UiCardTitle>シーズン選択</UiCardTitle>
-              <UiCardDescription>表示するシーズンを選択してください。現在のシーズン: {currentSelectedSeason ? currentSelectedSeason.name : '読み込み中...'}</UiCardDescription>
-            </UiCardHeader>
-            <UiCardContent>
-               <SeasonSelector
-                seasons={getAllSeasons()}
-                selectedSeasonId={selectedSeasonId}
-                onSelectSeason={setSelectedSeasonId}
-                formatDate={formatDateForSeasonName}
-              />
-            </UiCardContent>
-          </Card>
+          {/* Removed Season Selector Card */}
 
           {ALL_GAME_CLASSES.map((gameClassDetail) => {
             const classArchetypes = archetypesByClass[gameClassDetail.value];
@@ -309,7 +288,7 @@ export default function ManageArchetypesPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[60%]">デッキタイプ名</TableHead>
-                        <TableHead className="text-center">総試合数 ({currentSelectedSeason ? currentSelectedSeason.name : 'N/A'})</TableHead>
+                        <TableHead className="text-center">総試合数 (全期間)</TableHead> {/* Changed season display */}
                         <TableHead className="text-right">操作</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -384,7 +363,7 @@ export default function ManageArchetypesPage() {
                        <TableHeader>
                          <TableRow>
                            <TableHead className="w-[60%]">デッキタイプ名</TableHead>
-                           <TableHead className="text-center">総試合数 ({currentSelectedSeason ? currentSelectedSeason.name : 'N/A'})</TableHead>
+                           <TableHead className="text-center">総試合数 (全期間)</TableHead> {/* Changed season display */}
                            <TableHead className="text-right">操作</TableHead>
                          </TableRow>
                        </TableHeader>
@@ -451,3 +430,4 @@ export default function ManageArchetypesPage() {
     </div>
   );
 }
+
