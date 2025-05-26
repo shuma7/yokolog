@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   title: 'よこログ｜YNUsv - シャドウバース対戦記録',
   description: 'シャドウバースの対戦を記録し、戦績を分析しましょう。',
   icons: {
-    icon: '/icon.png', // src/app/icon.png を参照
-    apple: '/icon.png', // Apple Touch Iconとしても同じものを参照 (任意)
+    icon: '/icon.png',
+    apple: '/icon.png',
   },
 };
 
@@ -28,7 +28,7 @@ export default function RootLayout({
       GeistMono.variable
     )}>
       <body className={cn(
-        "antialiased bg-background text-foreground"
+        "bg-background text-foreground antialiased" // Reordered static classes
       )}>
         <ClientLayoutWrapper>
           {children}
