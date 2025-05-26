@@ -60,7 +60,8 @@ const getArchetypeDisplayInfo = (archetypeId: string | undefined, archetypes: Ar
   if (!archetypeId) return null;
   const archetype = archetypes.find(a => a.id === archetypeId);
   if (!archetype) return { name: "不明なデッキタイプ" };
-  return { name: formatArchetypeNameWithSuffix(archetype) };
+  // Display name without suffix for summary
+  return { name: archetype.name };
 };
 
 const getTurnDisplay = (turn: "first" | "second" | "unknown" | undefined) => {
@@ -113,8 +114,8 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
   const watchedResult = form.watch("result");
 
   const sortedArchetypes = useMemo(() => [...archetypes].sort((a, b) => {
-    if (a.id === 'unknown') return -1;
-    if (b.id === 'unknown') return 1;
+    if (a.id === 'unknown') return -1; // This line might be unnecessary if 'unknown' is filtered out before sort
+    if (b.id === 'unknown') return 1;  // Same as above
     const classAInfo = ALL_GAME_CLASSES.find(c => c.value === a.gameClass);
     const classBInfo = ALL_GAME_CLASSES.find(c => c.value === b.gameClass);
     const classAOrder = classAInfo ? ALL_GAME_CLASSES.indexOf(classAInfo) : ALL_GAME_CLASSES.length;
@@ -180,7 +181,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
           setCurrentUiStep('result');
         } else if (name === 'result' && value.result && currentUiStep === 'result') {
           setCurrentUiStep('notes');
-          requestAnimationFrame(() => {
+          requestAnimationFrame(() => { // Ensure focus happens after state update and re-render
             notesRef.current?.focus();
           });
         }
@@ -307,7 +308,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
   const cardTitle = initialData?.id ? "対戦編集" : "新規対戦を記録";
   const cardDescription = initialData?.id
     ? "この対戦の詳細を更新します。"
-    : "最近の対戦の詳細を段階的に記録します。";
+    : null; // Removed description for new match recording
 
   const showUserClass = initialData?.id || currentUiStep === 'userClass';
   const showUserArchetype = initialData?.id || (currentUiStep === 'userArchetype' && userSelectedClass);
@@ -326,7 +327,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle>{cardTitle}</CardTitle>
-        <CardDescription>{cardDescription}</CardDescription>
+        {cardDescription && <CardDescription>{cardDescription}</CardDescription>}
       </CardHeader>
       <CardContent>
         <Form {...form}>
