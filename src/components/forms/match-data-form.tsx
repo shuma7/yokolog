@@ -60,14 +60,18 @@ const getArchetypeDisplayInfo = (archetypeId: string | undefined, archetypes: Ar
   if (!archetypeId) return null;
   const archetype = archetypes.find(a => a.id === archetypeId);
   if (!archetype) return { name: "不明なデッキタイプ" };
-  // Display name without suffix for summary
-  return { name: archetype.name };
+  // Use formatArchetypeNameWithSuffix for the summary display
+  return { name: formatArchetypeNameWithSuffix(archetype) };
 };
 
 const getTurnDisplay = (turn: "first" | "second" | "unknown" | undefined) => {
   if (!turn) return null;
-  if (turn === "unknown") return "不明";
-  return turn === "first" ? "先攻" : "後攻";
+  switch (turn) {
+    case "first": return "先攻";
+    case "second": return "後攻";
+    case "unknown": return "不明";
+    default: return null;
+  }
 };
 
 const getResultDisplay = (result: "win" | "loss" | undefined) => {
