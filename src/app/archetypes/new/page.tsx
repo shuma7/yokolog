@@ -276,7 +276,7 @@ export default function ManageArchetypesPage() {
       />
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="container mx-auto">
-          <UiCard className="mb-6">
+          <Card className="mb-6">
             <UiCardHeader>
               <UiCardTitle>シーズン選択</UiCardTitle>
               <UiCardDescription>表示するシーズンを選択してください。現在のシーズン: {currentSelectedSeason ? currentSelectedSeason.name : '読み込み中...'}</UiCardDescription>
@@ -289,7 +289,7 @@ export default function ManageArchetypesPage() {
                 formatDate={formatDateForSeasonName}
               />
             </UiCardContent>
-          </UiCard>
+          </Card>
 
           {ALL_GAME_CLASSES.map((gameClassDetail) => {
             const classArchetypes = archetypesByClass[gameClassDetail.value];
