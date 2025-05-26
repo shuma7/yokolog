@@ -28,7 +28,7 @@ export default function RootLayout({
       GeistMono.variable
     )}>
       <body className={cn(
-        "bg-background text-foreground antialiased" // Reordered static classes
+        "text-foreground bg-background antialiased" // Minor reorder of static classes
       )}>
         <ClientLayoutWrapper>
           {children}
