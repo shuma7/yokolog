@@ -19,22 +19,41 @@ import {
 } from "@/components/ui/select";
 import { Card, CardDescription, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent as UiDialogContent, // Aliased to avoid conflict
+  DialogHeader as UiDialogHeader,
+  DialogTitle as UiDialogTitle,
+  DialogFooter as UiDialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useUsername } from "@/hooks/use-username";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSeasonManager } from "@/hooks/useSeasonManager";
 import { SeasonSelector } from "@/components/stats/season-selector";
 
+const NEW_SEASON_PASSWORD = "!3zeroms&7";
 
 export default function MembersPage() {
   const { archetypes } = useArchetypeManager();
   const { toast } = useToast();
   const { username: currentUsername } = useUsername();
-  const { 
-    selectedSeasonId, 
-    setSelectedSeasonId, 
-    getAllSeasons, 
-    startNewSeason, 
+  const {
+    selectedSeasonId,
+    setSelectedSeasonId,
+    getAllSeasons,
+    startNewSeason,
     isLoadingSeasons,
     getSelectedSeason,
     formatDateForSeasonName
@@ -46,6 +65,11 @@ export default function MembersPage() {
   const [allUsersAllMatches, setAllUsersAllMatches] = useState<MatchData[]>([]);
   const [isLoadingPageData, setIsLoadingPageData] = useState(true);
   const [isMemberLogLoading, setIsMemberLogLoading] = useState(false);
+
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [isConfirmNewSeasonDialogOpen, setIsConfirmNewSeasonDialogOpen] = useState(false);
+
 
   const gameClassMapping: GameClassNameMap = GAME_CLASS_EN_TO_JP;
   const currentSelectedSeason = getSelectedSeason();
@@ -70,13 +94,14 @@ export default function MembersPage() {
               const oldestSeason = seasons.length > 0 ? seasons[seasons.length - 1] : null;
               let userMatchesChanged = false;
               const migratedUserMatches = userMatches.map(m => {
-                if (!m.seasonId && oldestSeason) {
+                let matchWithUserId = {...m, userId: m.userId || user };
+                if (!matchWithUserId.seasonId && oldestSeason) {
                   userMatchesChanged = true;
-                  return {...m, userId: m.userId || user, seasonId: oldestSeason.id };
+                  return { ...matchWithUserId, seasonId: oldestSeason.id };
                 }
-                return {...m, userId: m.userId || user };
+                return matchWithUserId;
               });
-              if(userMatchesChanged) {
+              if(userMatchesChanged && user) { // Check if user is not null/empty
                 localStorage.setItem(key, JSON.stringify(migratedUserMatches));
               }
               allMatches.push(...migratedUserMatches);
@@ -97,7 +122,7 @@ export default function MembersPage() {
       setSelectedLogUsername(sortedUsers[0]);
     }
     setIsLoadingPageData(false);
-  }, [currentUsername, isLoadingSeasons, getAllSeasons]); // Add getAllSeasons to dependencies
+  }, [currentUsername, isLoadingSeasons, getAllSeasons]);
 
   useEffect(() => {
     if (selectedLogUsername && selectedSeasonId && typeof window !== 'undefined') {
@@ -116,14 +141,35 @@ export default function MembersPage() {
     }
   }, [selectedLogUsername, selectedSeasonId]);
 
-  const handleStartNewSeason = () => {
+  const handleInitiateNewSeason = () => {
+    setIsPasswordDialogOpen(true);
+  };
+
+  const handlePasswordSubmit = () => {
+    if (passwordInput === NEW_SEASON_PASSWORD) {
+      setIsPasswordDialogOpen(false);
+      setPasswordInput("");
+      setIsConfirmNewSeasonDialogOpen(true);
+    } else {
+      toast({
+        title: "エラー",
+        description: "パスワードが違います。",
+        variant: "destructive",
+      });
+      setIsPasswordDialogOpen(false);
+      setPasswordInput("");
+    }
+  };
+
+  const handleConfirmStartNewSeason = () => {
     startNewSeason();
     toast({
       title: "新シーズン開始",
       description: "新しいシーズンが開始されました。記録は新しいシーズンに保存されます。",
     });
+    setIsConfirmNewSeasonDialogOpen(false);
   };
-  
+
   const matchesForCurrentSeasonRankings = allUsersAllMatches.filter(m => m.seasonId === selectedSeasonId);
 
   if (isLoadingPageData || isLoadingSeasons) {
@@ -220,7 +266,7 @@ export default function MembersPage() {
                  </CardContent>
               </Card>
 
-              <div className="max-h-[calc(100vh-400px)] overflow-y-auto"> {/* Adjusted height */}
+              <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
                 {isMemberLogLoading ? (
                   <div className="space-y-2 mt-4">
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
@@ -245,30 +291,61 @@ export default function MembersPage() {
           </Tabs>
 
           <div className="mt-10 flex justify-center">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="lg">新しいシーズンを開始</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>新しいシーズンを開始しますか？</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    現在のシーズンが終了し、新しいシーズンが開始されます。
-                    現在のシーズンの記録は過去のデータとして保存されます。
-                    この操作は元に戻せません。
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleStartNewSeason} className="bg-destructive hover:bg-destructive/80">
-                    開始する
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button variant="destructive" size="lg" onClick={handleInitiateNewSeason}>
+                新しいシーズンを開始
+            </Button>
           </div>
+
+          <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+            <UiDialogContent className="sm:max-w-[425px]">
+              <UiDialogHeader>
+                <UiDialogTitle>パスワード入力</UiDialogTitle>
+              </UiDialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="password-input" className="text-right col-span-1">
+                    パスワード
+                  </Label>
+                  <Input
+                    id="password-input"
+                    type="password"
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    className="col-span-3"
+                    onKeyDown={(e) => { if (e.key === 'Enter') handlePasswordSubmit(); }}
+                  />
+                </div>
+              </div>
+              <UiDialogFooter>
+                <Button type="button" onClick={() => setIsPasswordDialogOpen(false)} variant="outline">キャンセル</Button>
+                <Button type="submit" onClick={handlePasswordSubmit}>確認</Button>
+              </UiDialogFooter>
+            </UiDialogContent>
+          </Dialog>
+
+          <AlertDialog open={isConfirmNewSeasonDialogOpen} onOpenChange={setIsConfirmNewSeasonDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>新しいシーズンを開始しますか？</AlertDialogTitle>
+                <AlertDialogDescription>
+                  現在のシーズンが終了し、新しいシーズンが開始されます。
+                  現在のシーズンの記録は過去のデータとして保存されます。
+                  この操作は元に戻せません。
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setIsConfirmNewSeasonDialogOpen(false)}>キャンセル</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmStartNewSeason} className="bg-destructive hover:bg-destructive/80">
+                  開始する
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
         </div>
       </main>
     </div>
   );
 }
+
+    
