@@ -44,10 +44,10 @@ interface TotalAggregatedStats {
 
 function calculateInternalStats(filteredMatches: MatchData[]): InternalTurnStats {
   const wins = filteredMatches.filter(m => m.result === 'win').length;
-  const losses = filteredMatches.filter(m => m.result === 'loss').length; // Only consider win/loss for win rate denominator
+  const losses = filteredMatches.filter(m => m.result === 'loss').length; 
   const gamesForWinRate = wins + losses;
   return {
-    matches: filteredMatches.length, // Total matches including those not win/loss if any in future
+    matches: filteredMatches.length, 
     wins: wins,
     winRate: gamesForWinRate > 0 ? parseFloat(((wins / gamesForWinRate) * 100).toFixed(1)) : 0,
   };
@@ -78,7 +78,7 @@ export function AggregatedStatsDisplay({ matches, archetypes, gameClassMapping }
   const archetypeStats: ArchetypeAggregatedStats[] = archetypes
     .map(arch => {
       const userMatchesWithArchetype = matches.filter(m => m.userArchetypeId === arch.id);
-      // Show archetype if it has matches, or if it's the 'unknown' archetype (even with 0 matches)
+      
       if (userMatchesWithArchetype.length === 0 && arch.id !== 'unknown') return null;
 
       const internalFirst = calculateInternalStats(userMatchesWithArchetype.filter(m => m.turn === 'first'));
@@ -93,12 +93,12 @@ export function AggregatedStatsDisplay({ matches, archetypes, gameClassMapping }
         firstTurnStats: toDisplayStats(internalFirst),
         secondTurnStats: toDisplayStats(internalSecond),
         overallStats: toDisplayStats(internalOverall),
-        totalMatchesPlayed: internalOverall.matches, // Use overall matches for sorting
+        totalMatchesPlayed: internalOverall.matches, 
       };
     })
     .filter(Boolean) as ArchetypeAggregatedStats[];
 
-  // Sort archetypes by total matches played (descending)
+  
   archetypeStats.sort((a, b) => b.totalMatchesPlayed - a.totalMatchesPlayed);
 
 
@@ -149,7 +149,7 @@ export function AggregatedStatsDisplay({ matches, archetypes, gameClassMapping }
           {archetypeStats.length === 0 && (
             <p className="text-center text-muted-foreground py-4">表示できるデッキタイプ別の集計データがありません。</p>
           )}
-          <ScrollArea className={archetypeStats.length > 3 ? "h-[600px]" : ""}> {/* Adjust scroll height based on items */}
+          <ScrollArea className={archetypeStats.length > 3 ? "h-[600px]" : ""}> 
             <div className="space-y-4">
               {archetypeStats.map(stat => {
                  const ArchetypeIcon = stat.archetypeId === 'unknown'
@@ -161,7 +161,7 @@ export function AggregatedStatsDisplay({ matches, archetypes, gameClassMapping }
                     <ArchetypeIcon className="h-5 w-5" />
                     {formatArchetypeNameWithSuffix({id: stat.archetypeId, name: stat.archetypeName, gameClass: stat.archetypeGameClass})}
                   </h3>
-                  {(stat.totalMatchesPlayed === 0) ? ( // Check total matches for the archetype
+                  {(stat.totalMatchesPlayed === 0) ? ( 
                      <p className="text-sm text-muted-foreground">このデッキタイプでの対戦記録はありません。</p>
                   ) : (
                   <Table size="sm">
@@ -188,3 +188,4 @@ export function AggregatedStatsDisplay({ matches, archetypes, gameClassMapping }
     </div>
   );
 }
+

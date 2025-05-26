@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 const matchDataFormSchema = z.object({
   userArchetypeId: z.string().min(1, "自分のデッキタイプを選択してください。"),
   opponentArchetypeId: z.string().min(1, "相手のデッキタイプを選択してください。"),
-  turn: z.enum(["first", "second", "unknown"], { required_error: "先攻/後攻を選択してください。" }),
+  turn: z.enum(["first", "second", "unknown"], { required_error: "先攻/後攻/忘れた! を選択してください。" }),
   result: z.enum(["win", "loss"], { required_error: "対戦結果を選択してください。" }),
   notes: z.string().max(500, "メモは500文字以内で入力してください。").optional(),
 });
@@ -114,8 +114,8 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
   const watchedResult = form.watch("result");
 
   const sortedArchetypes = useMemo(() => [...archetypes].sort((a, b) => {
-    if (a.id === 'unknown') return -1; // This line might be unnecessary if 'unknown' is filtered out before sort
-    if (b.id === 'unknown') return 1;  // Same as above
+    if (a.id === 'unknown') return -1; 
+    if (b.id === 'unknown') return 1;  
     const classAInfo = ALL_GAME_CLASSES.find(c => c.value === a.gameClass);
     const classBInfo = ALL_GAME_CLASSES.find(c => c.value === b.gameClass);
     const classAOrder = classAInfo ? ALL_GAME_CLASSES.indexOf(classAInfo) : ALL_GAME_CLASSES.length;
@@ -181,7 +181,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
           setCurrentUiStep('result');
         } else if (name === 'result' && value.result && currentUiStep === 'result') {
           setCurrentUiStep('notes');
-          requestAnimationFrame(() => { // Ensure focus happens after state update and re-render
+          requestAnimationFrame(() => { 
             notesRef.current?.focus();
           });
         }
@@ -308,7 +308,7 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
   const cardTitle = initialData?.id ? "対戦編集" : "新規対戦を記録";
   const cardDescription = initialData?.id
     ? "この対戦の詳細を更新します。"
-    : null; // Removed description for new match recording
+    : null; 
 
   const showUserClass = initialData?.id || currentUiStep === 'userClass';
   const showUserArchetype = initialData?.id || (currentUiStep === 'userArchetype' && userSelectedClass);
@@ -447,9 +447,9 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                 name="turn"
                 render={({ field }) => (
                   <FormItem className="space-y-3">
-                    <FormLabel className="text-base font-semibold">先攻/後攻を選んでください</FormLabel>
+                    <FormLabel className="text-base font-semibold">先攻/後攻/忘れた! を選んでください</FormLabel>
                     <FormControl>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-3 gap-3 sm:gap-4">
                         <Button
                           type="button"
                           variant={field.value === 'first' ? 'default' : 'outline'}
@@ -471,6 +471,17 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
                           onClick={() => field.onChange('second')}
                         >
                           後攻
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={field.value === 'unknown' ? 'default' : 'outline'}
+                          className={cn(
+                            "h-auto py-4 text-md sm:py-6 sm:text-lg font-semibold",
+                            field.value === 'unknown' ? "bg-gray-500 hover:bg-gray-600 border-gray-500 hover:border-gray-600 text-white" : "border-muted-foreground/50"
+                          )}
+                          onClick={() => field.onChange('unknown')}
+                        >
+                          忘れた!
                         </Button>
                       </div>
                     </FormControl>
@@ -575,3 +586,4 @@ export function MatchDataForm({ archetypes, onSubmit, initialData, submitButtonT
     </Card>
   );
 }
+

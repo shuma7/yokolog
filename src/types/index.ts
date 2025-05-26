@@ -37,11 +37,11 @@ export interface MatchData {
   timestamp: number;
   userArchetypeId: string;
   opponentArchetypeId: string;
-  turn: "first" | "second" | "unknown";
+  turn: "first" | "second" | "unknown"; // Updated to include "unknown"
   result: "win" | "loss";
   notes?: string;
   userId: string;
-  seasonId?: string; // Added for season tracking
+  seasonId?: string;
 }
 
 export interface ArchetypeWithIcon extends Archetype {
@@ -66,3 +66,4 @@ export interface Season {
   startDate: number;
   endDate: number | null; // null for active season
 }
+
