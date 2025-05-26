@@ -1,20 +1,11 @@
 
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import ClientLayoutWrapper from '@/components/layout/client-layout-wrapper';
 import { cn } from '@/lib/utils';
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
 
 export const metadata: Metadata = {
   title: 'よこログ｜YNUsv - シャドウバース対戦記録',
@@ -29,10 +20,12 @@ export default function RootLayout({
   return (
     <html lang="ja" className={cn(
       "dark",
-      geistSans.variable,
-      geistMono.variable
+      GeistSans.variable,
+      GeistMono.variable
     )}>
-      <body className="antialiased bg-background text-foreground">
+      <body className={cn(
+        "antialiased bg-background text-foreground"
+      )}>
         <ClientLayoutWrapper>
           {children}
         </ClientLayoutWrapper>
