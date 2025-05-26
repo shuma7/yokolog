@@ -1,11 +1,8 @@
-// src/lib/firebase.ts (New file)
+
+// src/lib/firebase.ts
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
-// Your web app's Firebase configuration
-// IMPORTANT: Replace with your actual Firebase project configuration from the Firebase console.
-// These should ideally be stored in environment variables (e.g., .env.local)
-// and accessed via process.env.NEXT_PUBLIC_FIREBASE_...
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -20,22 +17,41 @@ let app: FirebaseApp;
 let db: Firestore;
 
 if (getApps().length === 0) {
-  if (!firebaseConfig.projectId) {
-    console.warn(
-      'Firebase config not found. Features requiring Firebase will not work. ' +
-      'Please ensure your .env.local file is set up with Firebase credentials.'
-    );
-    // Provide dummy app and db if config is missing to prevent hard crashes on import
-    // although features requiring db will fail.
-    app = {} as FirebaseApp; // This is a mock, app won't be functional
-    db = {} as Firestore;    // This is a mock, db won't be functional
+  // Check if all essential Firebase config values are present
+  if (
+    firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId
+  ) {
+    try {
+      app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+    } catch (error) {
+      console.error("Error initializing Firebase:", error);
+      console.warn(
+        'Firebase initialization failed. Firebase features will not be available. ' +
+        'Please ensure your Firebase project configuration and environment variables are correct.'
+      );
+      app = {} as FirebaseApp; // Fallback to mock objects
+      db = {} as Firestore;   // Fallback to mock objects
+    }
   } else {
-    app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
+    console.warn(
+      'Firebase core configuration (apiKey, authDomain, projectId) is incomplete in environment variables. ' +
+      'Firebase features will not be available. Please ensure NEXT_PUBLIC_FIREBASE_... variables are correctly set in your deployment environment.'
+    );
+    app = {} as FirebaseApp; // Fallback to mock objects
+    db = {} as Firestore;   // Fallback to mock objects
   }
 } else {
   app = getApps()[0];
-  db = getFirestore(app);
+  // Ensure db is initialized even if app was already initialized (e.g., in HMR scenarios)
+  try {
+    db = getFirestore(app);
+  } catch (error) {
+     console.error("Error getting Firestore instance from existing app:", error);
+     db = {} as Firestore;
+  }
 }
 
 export { db, app };
