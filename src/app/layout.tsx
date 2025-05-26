@@ -23,9 +23,7 @@ export default function RootLayout({
       GeistSans.variable,
       GeistMono.variable
     )}>
-      <body className={cn(
-        "antialiased bg-background text-foreground"
-      )}>
+      <body className="antialiased bg-background text-foreground">
         <ClientLayoutWrapper>
           {children}
         </ClientLayoutWrapper>
