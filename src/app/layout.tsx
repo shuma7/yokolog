@@ -10,6 +10,10 @@ import { cn } from '@/lib/utils';
 export const metadata: Metadata = {
   title: 'よこログ｜YNUsv - シャドウバース対戦記録',
   description: 'シャドウバースの対戦を記録し、戦績を分析しましょう。',
+  icons: {
+    icon: '/icon.png', // src/app/icon.png を参照
+    apple: '/icon.png', // Apple Touch Iconとしても同じものを参照 (任意)
+  },
 };
 
 export default function RootLayout({
