@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { MainHeader } from "@/components/layout/main-header";
 import { useArchetypeManager } from "@/hooks/use-archetype-manager";
 import { useToast } from "@/hooks/use-toast";
-import type { Archetype, GameClass } from "@/types";
+import type { Archetype, GameClass, MatchData } from "@/types"; // Added MatchData
 import { ALL_GAME_CLASSES } from "@/types";
 import { ArchetypeForm } from "@/components/forms/archetype-form";
 import {
@@ -37,64 +37,52 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit3, Trash2 } from "lucide-react";
 import { CLASS_ICONS, formatArchetypeNameWithSuffix, getJapaneseClassNameFromValue } from "@/lib/game-data";
-import type { MatchData } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSeasonManager } from "@/hooks/useSeasonManager";
-import { Card, CardContent as UiCardContent, CardHeader as UiCardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from "@/components/ui/card";
+// Firestore imports
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where, writeBatch } from "firebase/firestore";
 
 
 export default function ManageArchetypesPage() {
-  const { archetypes, addArchetype, updateArchetype, deleteArchetype } = useArchetypeManager();
+  const { archetypes, addArchetype, updateArchetype, deleteArchetype: deleteArchetypeDefinition, isLoadingArchetypes } = useArchetypeManager();
   const { toast } = useToast();
-  const {
-    getAllSeasons,
-    isLoadingSeasons,
-  } = useSeasonManager();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentArchetype, setCurrentArchetype] = useState<Partial<Archetype> | null>(null);
   const [allMatchesForCounts, setAllMatchesForCounts] = useState<MatchData[]>([]);
-  const [discoveredUserKeys, setDiscoveredUserKeys] = useState<string[]>([]);
-  const [isLoadingPageData, setIsLoadingPageData] = useState(true);
+  const [isLoadingPageData, setIsLoadingPageData] = useState(true); // For match counts loading
 
   useEffect(() => {
-    if (isLoadingSeasons) return;
-    setIsLoadingPageData(true);
-    const collectedMatches: MatchData[] = [];
-    const userLogKeys: string[] = [];
-    if (typeof window !== 'undefined') {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('yokolog_match_logs_')) {
-          userLogKeys.push(key);
-          try {
-            const item = localStorage.getItem(key);
-            const userMatches: MatchData[] = item ? JSON.parse(item) : [];
+    // Fetch all matches from all users for accurate counts
+    // This is a simplified version. In a real app with many users/matches,
+    // this could be slow and might need aggregated counts from a backend.
+    if (isLoadingArchetypes) return; // Wait for archetypes to load first
 
-            const seasons = getAllSeasons();
-            const oldestSeason = seasons.length > 0 ? seasons[seasons.length - 1] : null;
-            let userMatchesChanged = false;
-            const migratedUserMatches = userMatches.map(m => {
-                if (!m.seasonId && oldestSeason) {
-                  userMatchesChanged = true;
-                  return { ...m, seasonId: oldestSeason.id };
-                }
-                return m;
-              });
-            if(userMatchesChanged) {
-                localStorage.setItem(key, JSON.stringify(migratedUserMatches));
-            }
-            collectedMatches.push(...migratedUserMatches);
-          } catch (e) {
-            console.error(`Failed to parse matches for key ${key}:`, e);
-          }
-        }
+    setIsLoadingPageData(true);
+    const fetchAllMatches = async () => {
+      if (!db || Object.keys(db).length === 0) {
+          console.warn("Firestore is not initialized. Cannot fetch match counts.");
+          setAllMatchesForCounts([]);
+          setIsLoadingPageData(false);
+          return;
       }
-    }
-    setDiscoveredUserKeys(userLogKeys);
-    setAllMatchesForCounts(collectedMatches);
-    setIsLoadingPageData(false);
-  }, [isLoadingSeasons, getAllSeasons]);
+      const matchesCollectionRef = collection(db, 'matches');
+      try {
+        const querySnapshot = await getDocs(matchesCollectionRef);
+        const collectedMatches: MatchData[] = [];
+        querySnapshot.forEach((doc) => {
+          collectedMatches.push({ id: doc.id, ...doc.data() } as MatchData);
+        });
+        setAllMatchesForCounts(collectedMatches);
+      } catch (error) {
+        console.error("Error fetching all matches for counts:", error);
+        toast({ title: "エラー", description: "試合数の取得に失敗しました。", variant: "destructive" });
+      } finally {
+        setIsLoadingPageData(false);
+      }
+    };
+    fetchAllMatches();
+  }, [isLoadingArchetypes, toast]);
 
   const handleAddNew = useCallback(() => {
     setCurrentArchetype(null);
@@ -106,7 +94,7 @@ export default function ManageArchetypesPage() {
     setIsDialogOpen(true);
   }, []);
 
-  const handleDelete = useCallback((archetypeToDelete: Archetype) => {
+  const handleDelete = useCallback(async (archetypeToDelete: Archetype) => {
     if (archetypeToDelete.id === 'unknown') {
       toast({
         title: "エラー",
@@ -116,53 +104,54 @@ export default function ManageArchetypesPage() {
       return;
     }
     try {
-      const unknownArchetypeId = archetypes.find(a => a.id === 'unknown')?.id || 'unknown';
+      // Get the 'unknown' archetype's ID (should be stable 'unknown')
+      const unknownArchetypeId = 'unknown'; 
 
-      discoveredUserKeys.forEach(userKey => {
-        const item = localStorage.getItem(userKey);
-        let userMatches: MatchData[] = item ? JSON.parse(item) : [];
-        let userMatchesChanged = false;
+      // Update match logs in Firestore
+      if (db && Object.keys(db).length !== 0) {
+        const matchesRef = collection(db, "matches");
+        const qUser = query(matchesRef, where("userArchetypeId", "==", archetypeToDelete.id));
+        const qOpponent = query(matchesRef, where("opponentArchetypeId", "==", archetypeToDelete.id));
 
-        const updatedUserMatches = userMatches.map(match => {
-          const newMatch = { ...match };
-          let changedInThisMatch = false;
-          if (match.userArchetypeId === archetypeToDelete.id) {
-            newMatch.userArchetypeId = unknownArchetypeId;
-            changedInThisMatch = true;
-          }
-          if (match.opponentArchetypeId === archetypeToDelete.id) {
-            newMatch.opponentArchetypeId = unknownArchetypeId;
-            changedInThisMatch = true;
-          }
-          if (changedInThisMatch) {
-            userMatchesChanged = true;
-          }
-          return newMatch;
+        const userMatchesSnapshot = await getDocs(qUser);
+        const opponentMatchesSnapshot = await getDocs(qOpponent);
+
+        const batch = writeBatch(db);
+        let changesMade = false;
+
+        userMatchesSnapshot.forEach(docSnap => {
+          batch.update(docSnap.ref, { userArchetypeId: unknownArchetypeId });
+          changesMade = true;
         });
-
-        if (userMatchesChanged) {
-          localStorage.setItem(userKey, JSON.stringify(updatedUserMatches));
+        opponentMatchesSnapshot.forEach(docSnap => {
+          batch.update(docSnap.ref, { opponentArchetypeId: unknownArchetypeId });
+          changesMade = true;
+        });
+        
+        if (changesMade) {
+          await batch.commit();
+          toast({
+            title: "対戦記録更新",
+            description: `関連する対戦記録のデッキタイプが「${formatArchetypeNameWithSuffix(archetypes.find(a=>a.id === unknownArchetypeId) || {id:'unknown', name:'不明な相手', gameClass: 'Forestcraft'})}」に更新されました。`,
+          });
+           // Refetch match counts
+           const querySnapshot = await getDocs(collection(db, 'matches'));
+           const collectedMatches: MatchData[] = [];
+           querySnapshot.forEach((doc) => {
+             collectedMatches.push({ id: doc.id, ...doc.data() } as MatchData);
+           });
+           setAllMatchesForCounts(collectedMatches);
         }
-      });
-
-      deleteArchetype(archetypeToDelete.id);
-
-      setAllMatchesForCounts(prevMatches =>
-        prevMatches.map(match => {
-          let newMatch = { ...match };
-          if (match.userArchetypeId === archetypeToDelete.id) newMatch.userArchetypeId = unknownArchetypeId;
-          if (match.opponentArchetypeId === archetypeToDelete.id) newMatch.opponentArchetypeId = unknownArchetypeId;
-          return newMatch;
-        }).filter(match =>
-          (match.userArchetypeId !== archetypeToDelete.id && match.opponentArchetypeId !== archetypeToDelete.id) ||
-          match.userArchetypeId === unknownArchetypeId ||
-          match.opponentArchetypeId === unknownArchetypeId
-        )
-      );
+      }
+      
+      // Delete the archetype definition
+      await deleteArchetypeDefinition(archetypeToDelete.id);
+      // Archetypes state will update via onSnapshot from useArchetypeManager
+      // Match counts UI will update based on the new allMatchesForCounts
 
       toast({
         title: "削除完了",
-        description: `デッキタイプ「${formatArchetypeNameWithSuffix(archetypeToDelete)}」を削除しました。関連する全ユーザーの対戦記録が更新されました。`,
+        description: `デッキタイプ「${formatArchetypeNameWithSuffix(archetypeToDelete)}」を削除しました。`,
       });
     } catch (error: any) {
       toast({
@@ -171,27 +160,29 @@ export default function ManageArchetypesPage() {
         variant: "destructive",
       });
     }
-  }, [archetypes, discoveredUserKeys, deleteArchetype, toast]);
+  }, [archetypes, deleteArchetypeDefinition, toast]);
 
-  const handleSubmitForm = useCallback((data: { name: string; gameClass: GameClass }) => {
+  const handleSubmitForm = useCallback(async (data: { name: string; gameClass: GameClass }) => {
     try {
       if (currentArchetype && currentArchetype.id) {
         const updated: Archetype = {
-            ...(currentArchetype as Archetype),
+            ...(currentArchetype as Archetype), // Cast is okay as we check id
             name: data.name,
             gameClass: data.gameClass,
         };
-        updateArchetype(updated);
+        await updateArchetype(updated); // This is now async
         toast({
           title: "更新完了",
           description: `「${formatArchetypeNameWithSuffix(updated)}」を更新しました。`,
         });
       } else {
-        const newArchetype = addArchetype(data.name, data.gameClass);
-        toast({
-          title: "追加完了",
-          description: `「${formatArchetypeNameWithSuffix(newArchetype)}」を追加しました。`,
-        });
+        const newArchetype = await addArchetype(data.name, data.gameClass); // This is now async
+        if (newArchetype) {
+          toast({
+            title: "追加完了",
+            description: `「${formatArchetypeNameWithSuffix(newArchetype)}」を追加しました。`,
+          });
+        }
       }
       setIsDialogOpen(false);
       setCurrentArchetype(null);
@@ -219,24 +210,13 @@ export default function ManageArchetypesPage() {
     return allMatchesForCounts.filter(match => match.userArchetypeId === archetypeId || match.opponentArchetypeId === archetypeId).length;
   }, [allMatchesForCounts]);
 
-  // Moved this useMemo hook before the conditional return
   const userDefinedArchetypesExist = useMemo(() => {
-    // Check if archetypes has been loaded (it might be initial empty array from useLocalStorage)
-    // and then check if there are any non-unknown archetypes
-    if (archetypes.length === 0 && isLoadingPageData) { 
-      // If archetypes are not yet loaded from useArchetypeManager (which also waits for localStorage)
-      // and page data is still loading, assume true to prevent premature message display,
-      // or handle this based on when archetypes is truly populated.
-      // A safer bet might be to wait until archetypes has at least one item (the 'unknown' one after init)
-      // or isLoadingArchetypes from useArchetypeManager if it exposed that.
-      // For now, relying on archetypes.length check.
-      return true; // Avoid flicker of "no archetypes" message during initial load
-    }
-    return archetypes.some(arch => arch.id !== 'unknown');
-  }, [archetypes, isLoadingPageData]);
+    if (isLoadingArchetypes) return true; // Assume true while loading to prevent flicker
+    return archetypes.some(arch => arch.id !== 'unknown' && !arch.isDefault);
+  }, [archetypes, isLoadingArchetypes]);
 
 
-  if (isLoadingPageData || isLoadingSeasons) {
+  if (isLoadingArchetypes || isLoadingPageData) {
     return (
       <div className="flex flex-1 flex-col">
         <MainHeader
@@ -252,9 +232,9 @@ export default function ManageArchetypesPage() {
           <div className="container mx-auto space-y-6">
             {[...Array(3)].map((_, i) => (
               <section key={i} className="mb-8">
-                <Skeleton className="h-7 w-1/4 mb-3" /> {/* Class Title Skeleton */}
+                <Skeleton className="h-7 w-1/4 mb-3" />
                 <div className="rounded-md border">
-                  <Skeleton className="h-10 w-full" /> {/* Table Header Skeleton */}
+                  <Skeleton className="h-10 w-full" />
                   {[...Array(2)].map((_, j) => (
                      <Skeleton key={j} className="h-10 w-full border-t" />
                   ))}
@@ -314,7 +294,7 @@ export default function ManageArchetypesPage() {
                               onClick={() => handleEdit(archetype)}
                               className="mr-1 text-primary hover:text-primary/80"
                               title="編集"
-                              disabled={archetype.id === 'unknown'} // "unknown" is not editable from this list
+                              disabled={archetype.id === 'unknown'}
                             >
                               <Edit3 className="h-4 w-4" />
                             </Button>
@@ -325,7 +305,7 @@ export default function ManageArchetypesPage() {
                                   size="icon"
                                   className="text-destructive hover:text-destructive/80"
                                   title="削除"
-                                  disabled={archetype.id === 'unknown'} // "unknown" is not deletable
+                                  disabled={archetype.id === 'unknown'}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -360,10 +340,52 @@ export default function ManageArchetypesPage() {
               </section>
             );
           })}
+            {/* Display 'unknown' archetype separately if needed, or handle its display elsewhere */}
+            {archetypes.find(a => a.id === 'unknown') && !Object.values(archetypesByClass).flat().some(a => a.id === 'unknown') && (
+              <section key="unknown-section" className="mb-8">
+                <h2 className="text-xl font-semibold mb-3 flex items-center">
+                  {CLASS_ICONS.Forestcraft && <CLASS_ICONS.Forestcraft className="mr-2 h-6 w-6 text-muted-foreground" />} {/* Example Icon */}
+                  その他 (不明な相手など)
+                </h2>
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[60%]">デッキタイプ名</TableHead>
+                            <TableHead className="text-center">総試合数 (全期間)</TableHead>
+                            <TableHead className="text-right">操作</TableHead>
+                        </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                        {archetypes.filter(a => a.id === 'unknown').map(archetype => (
+                            <TableRow key={archetype.id}>
+                            <TableCell className="font-medium">{formatArchetypeNameWithSuffix(archetype)}</TableCell>
+                            <TableCell className="text-center">{getMatchCount(archetype.id)}</TableCell>
+                            <TableCell className="text-right">
+                                <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(archetype)}
+                                className="mr-1 text-primary hover:text-primary/80"
+                                title="編集"
+                                >
+                                <Edit3 className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" disabled className="text-muted-foreground" title="削除不可">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </TableCell>
+                            </TableRow>
+                        ))}
+                        </TableBody>
+                    </Table>
+                </div>
+              </section>
+            )}
 
-           {!userDefinedArchetypesExist && !isLoadingPageData && archetypes.length > 0 && ( // Ensure archetypes are loaded
+           {!isLoadingArchetypes && !userDefinedArchetypesExist && Object.values(archetypesByClass).every(arr => arr.length === 0) && (
               <div className="text-center text-muted-foreground py-8">
-                デッキタイプはまだ登録されていません。「不明な相手」以外のデッキタイプを「新規デッキタイプ追加」ボタンから追加できます。
+                「不明な相手」以外のデッキタイプはまだ登録されていません。「新規デッキタイプ追加」ボタンから追加できます。
               </div>
            )}
         </div>
@@ -377,16 +399,16 @@ export default function ManageArchetypesPage() {
       }}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{currentArchetype?.id && currentArchetype.id !== 'unknown' ? "デッキタイプ編集" : "新規デッキタイプ追加"}</DialogTitle>
+            <DialogTitle>{currentArchetype?.id ? "デッキタイプ編集" : "新規デッキタイプ追加"}</DialogTitle>
             <DialogDescription>
-              {currentArchetype?.id && currentArchetype.id !== 'unknown' ? "デッキタイプの詳細を編集します。" : "新しいデッキタイプを登録します。"}
+              {currentArchetype?.id ? (currentArchetype.id === 'unknown' ? "「不明な相手」デッキタイプを編集します。IDは変更できません。" : "デッキタイプの詳細を編集します。") : "新しいデッキタイプを登録します。"}
             </DialogDescription>
           </DialogHeader>
           <ArchetypeForm
             onSubmit={handleSubmitForm}
-            initialData={currentArchetype && currentArchetype.id !== 'unknown' ? currentArchetype : undefined}
-            submitButtonText={currentArchetype?.id && currentArchetype.id !== 'unknown' ? "更新" : "追加"}
-            isEditingUnknown={currentArchetype?.id === 'unknown'} // This flag is primarily for the form's internal logic
+            initialData={currentArchetype || undefined} // Pass full currentArchetype or undefined
+            submitButtonText={currentArchetype?.id ? "更新" : "追加"}
+            isEditingUnknown={currentArchetype?.id === 'unknown'}
           />
         </DialogContent>
       </Dialog>

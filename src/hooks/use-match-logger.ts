@@ -6,154 +6,170 @@ import type { MatchData } from '@/types';
 import { useUsername } from './use-username';
 import { useEffect, useState, useCallback } from 'react';
 import { useSeasonManager } from './useSeasonManager';
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  doc,
+  deleteDoc,
+  updateDoc,
+  serverTimestamp, // For Firestore timestamp, if needed
+} from 'firebase/firestore';
+import { useToast } from './use-toast';
 
-// Add selectedSeasonId as a parameter to the hook
+
 export function useMatchLogger(passedSelectedSeasonId: string | null) {
   const { username } = useUsername();
-  // Still use useSeasonManager for getActiveSeason, getAllSeasons, isLoadingSeasons
-  const { getActiveSeason, getAllSeasons, isLoadingSeasons } = useSeasonManager();
+  const { getActiveSeason, isLoadingSeasons } = useSeasonManager(); // Only getActiveSeason for new matches if no passedSelectedSeasonId
   const [matches, setMatches] = useState<MatchData[]>([]);
   const [isLoadingMatches, setIsLoadingMatches] = useState(true);
-
-  const getStorageKey = useCallback((user: string | null) => {
-    return user ? `yokolog_match_logs_${user}` : null;
-  }, []);
+  const { toast } = useToast();
 
   useEffect(() => {
+    if (!username || !passedSelectedSeasonId || isLoadingSeasons) {
+      setMatches([]);
+      setIsLoadingMatches(username && passedSelectedSeasonId ? true : false); // Only loading if we expect data
+      if (!username) console.log("MatchLogger: No username, clearing matches.");
+      if (!passedSelectedSeasonId) console.log("MatchLogger: No selected season ID, clearing matches.");
+      return;
+    }
+
+    if (!db || Object.keys(db).length === 0) {
+      console.warn("Firestore is not initialized. Match logger will not function.");
+      setIsLoadingMatches(false);
+      return;
+    }
+    
     setIsLoadingMatches(true);
-    const storageKey = getStorageKey(username);
-    if (storageKey && !isLoadingSeasons) {
-      const item = window.localStorage.getItem(storageKey);
-      let allUserMatches: MatchData[] = item ? JSON.parse(item) : [];
-      
-      const seasons = getAllSeasons();
-      const oldestSeason = seasons.length > 0 ? seasons[seasons.length - 1] : null;
+    console.log(`MatchLogger: Subscribing to matches for user "${username}", season "${passedSelectedSeasonId}"`);
 
-      let matchesChanged = false;
-      allUserMatches = allUserMatches.map(match => {
-        if (!match.seasonId && oldestSeason) {
-          matchesChanged = true;
-          return { ...match, seasonId: oldestSeason.id };
-        }
-        return match;
+    const matchesCollectionRef = collection(db, 'matches');
+    const q = query(
+      matchesCollectionRef,
+      where('userId', '==', username),
+      where('seasonId', '==', passedSelectedSeasonId),
+      orderBy('timestamp', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const fetchedMatches: MatchData[] = [];
+      querySnapshot.forEach((doc) => {
+        fetchedMatches.push({ id: doc.id, ...doc.data() } as MatchData);
       });
+      setMatches(fetchedMatches);
+      setIsLoadingMatches(false);
+      console.log(`MatchLogger: Fetched ${fetchedMatches.length} matches.`);
+    }, (error) => {
+      console.error(`Error fetching matches for user "${username}", season "${passedSelectedSeasonId}":`, error);
+      toast({ title: "エラー", description: "対戦記録の読み込みに失敗しました。", variant: "destructive" });
+      setIsLoadingMatches(false);
+    });
 
-      if (matchesChanged && username) {
-         window.localStorage.setItem(storageKey, JSON.stringify(allUserMatches));
-      }
+    return () => {
+      console.log(`MatchLogger: Unsubscribing from matches for user "${username}", season "${passedSelectedSeasonId}"`);
+      unsubscribe();
+    };
+  }, [username, passedSelectedSeasonId, isLoadingSeasons, toast]);
 
-      // Use passedSelectedSeasonId for filtering, fallback to active season if null
-      const seasonIdToFilterBy = passedSelectedSeasonId ?? getActiveSeason()?.id;
 
-      if (seasonIdToFilterBy) {
-        setMatches([...allUserMatches.filter(match => match.seasonId === seasonIdToFilterBy)].sort((a,b) => b.timestamp - a.timestamp));
-      } else {
-        setMatches([]); 
-      }
-    } else {
-      setMatches([]); 
-    }
-    setIsLoadingMatches(false);
-  }, [username, passedSelectedSeasonId, getStorageKey, getActiveSeason, getAllSeasons, isLoadingSeasons, isLoadingMatches === false]); // Added isLoadingMatches to re-check after initial load if needed, though primarily driven by other deps
-
-  const saveMatchesToStorage = useCallback((allUserMatches: MatchData[], user: string | null) => {
-    const storageKey = getStorageKey(user);
-    if (storageKey) {
-      window.localStorage.setItem(storageKey, JSON.stringify(allUserMatches));
-    }
-  }, [getStorageKey]);
-
-  const addMatch = (data: Omit<MatchData, 'id' | 'timestamp' | 'userId' | 'seasonId'>) => {
+  const addMatch = useCallback(async (data: Omit<MatchData, 'id' | 'timestamp' | 'userId' | 'seasonId'>) => {
     if (!username) {
-      // console.warn("Cannot add match: username not set."); // Removed as per previous request
+      toast({ title: "エラー", description: "ユーザー名が設定されていません。", variant: "destructive" });
       return null;
     }
-    const activeSeason = getActiveSeason();
+    if (!db || Object.keys(db).length === 0) {
+      toast({ title: "エラー", description: "データベース接続がありません。", variant: "destructive" });
+      return null;
+    }
+    
+    const activeSeason = getActiveSeason(); // Season for new match is always the current *active* season
     if (!activeSeason) {
-      console.error("Cannot add match: no active season found.");
+      toast({ title: "エラー", description: "記録対象のアクティブなシーズンがありません。", variant: "destructive" });
       return null;
     }
 
-    const newMatch: MatchData = {
+    const newMatchData: Omit<MatchData, 'id'> = {
       ...data,
-      id: uuidv4(),
-      timestamp: Date.now(),
+      timestamp: Date.now(), // Client-side timestamp for simplicity
       userId: username,
       seasonId: activeSeason.id,
     };
 
-    const storageKey = getStorageKey(username);
-    let allUserMatches: MatchData[] = [];
-    if (storageKey) {
-        const item = window.localStorage.getItem(storageKey);
-        allUserMatches = item ? JSON.parse(item) : [];
+    try {
+      const docRef = await addDoc(collection(db, 'matches'), newMatchData);
+      // If the new match is for the currently viewed season, Firestore listener will update state.
+      // If it's for a different (active) season than viewed, the local state for *viewed* season won't change here.
+      return { id: docRef.id, ...newMatchData };
+    } catch (error) {
+      console.error("Error adding match to Firestore:", error);
+      toast({ title: "エラー", description: "対戦記録の追加に失敗しました。", variant: "destructive" });
+      return null;
     }
-    
-    const updatedAllUserMatches = [newMatch, ...allUserMatches];
-    saveMatchesToStorage(updatedAllUserMatches, username);
+  }, [username, getActiveSeason, toast]);
 
-    // Update local state for current view if the new match is in the currently viewed season
-    const currentSeasonIdToFilterBy = passedSelectedSeasonId ?? getActiveSeason()?.id;
-    if (newMatch.seasonId === currentSeasonIdToFilterBy) {
-      setMatches(prev => [...[newMatch, ...prev].sort((a,b) => b.timestamp - a.timestamp)]);
-    }
-    return newMatch;
-  };
-
-  const deleteMatch = (id: string) => {
+  const deleteMatch = useCallback(async (id: string) => {
     if (!username) {
-      // console.warn("Cannot delete match: username not set."); // Removed
+      toast({ title: "エラー", description: "ユーザー名が設定されていません。", variant: "destructive" });
       return;
     }
-    const storageKey = getStorageKey(username);
-    let allUserMatches: MatchData[] = [];
-    if (storageKey) {
-        const item = window.localStorage.getItem(storageKey);
-        allUserMatches = item ? JSON.parse(item) : [];
+     if (!db || Object.keys(db).length === 0) {
+      toast({ title: "エラー", description: "データベース接続がありません。", variant: "destructive" });
+      return;
     }
+    const docRef = doc(db, 'matches', id);
+    try {
+      // Before deleting, ensure the match belongs to the current user for safety,
+      // though Firestore rules should ideally enforce this.
+      // const matchToDelete = matches.find(m => m.id === id);
+      // if (matchToDelete && matchToDelete.userId !== username) {
+      //   toast({ title: "エラー", description: "権限がありません。", variant: "destructive" });
+      //   return;
+      // }
+      await deleteDoc(docRef);
+      // Firestore listener will update state.
+    } catch (error) {
+      console.error("Error deleting match from Firestore:", error);
+      toast({ title: "エラー", description: "対戦記録の削除に失敗しました。", variant: "destructive" });
+    }
+  }, [username, toast]);
 
-    const updatedAllUserMatches = allUserMatches.filter(match => match.id !== id);
-    saveMatchesToStorage(updatedAllUserMatches, username);
-    
-    setMatches(prev => [...prev.filter(match => match.id !== id)].sort((a,b) => b.timestamp - a.timestamp));
-  };
-
-  const updateMatch = (updatedMatchData: MatchData) => {
-    if(!username) {
-      // console.warn("Cannot update match: username not set."); // Removed
+  const updateMatch = useCallback(async (updatedMatchData: MatchData) => {
+    if (!username) {
+      toast({ title: "エラー", description: "ユーザー名が設定されていません。", variant: "destructive" });
+      return;
+    }
+    if (!db || Object.keys(db).length === 0) {
+      toast({ title: "エラー", description: "データベース接続がありません。", variant: "destructive" });
       return;
     }
     if (updatedMatchData.userId !== username) {
-        console.error("Attempted to update a match that does not belong to the current user.");
-        return;
+      toast({ title: "エラー", description: "この記録は更新できません（ユーザー不一致）。", variant: "destructive" });
+      return;
     }
-    if (!updatedMatchData.seasonId) { 
-        const activeSeason = getActiveSeason();
-        if (activeSeason) {
-            updatedMatchData.seasonId = activeSeason.id;
+    if (!updatedMatchData.seasonId) {
+        const currentActiveSeason = getActiveSeason();
+        if (currentActiveSeason) {
+            updatedMatchData.seasonId = currentActiveSeason.id;
         } else {
-            console.error("Cannot update match: no active season to assign.");
+            toast({ title: "エラー", description: "有効なシーズンが見つからず更新できません。", variant: "destructive" });
             return;
         }
     }
 
-    const storageKey = getStorageKey(username);
-    let allUserMatches: MatchData[] = [];
-    if (storageKey) {
-        const item = window.localStorage.getItem(storageKey);
-        allUserMatches = item ? JSON.parse(item) : [];
+    const { id, ...dataToUpdate } = updatedMatchData;
+    const docRef = doc(db, 'matches', id);
+    try {
+      await updateDoc(docRef, dataToUpdate);
+      // Firestore listener will update state if it's for the viewed season.
+    } catch (error) {
+      console.error("Error updating match in Firestore:", error);
+      toast({ title: "エラー", description: "対戦記録の更新に失敗しました。", variant: "destructive" });
     }
-    
-    const updatedAllUserMatches = allUserMatches.map(m => m.id === updatedMatchData.id ? updatedMatchData : m);
-    saveMatchesToStorage(updatedAllUserMatches, username);
-
-    const currentSeasonIdToFilterBy = passedSelectedSeasonId ?? getActiveSeason()?.id;
-    if (updatedMatchData.seasonId === currentSeasonIdToFilterBy) {
-        setMatches(prev => [...prev.map(m => m.id === updatedMatchData.id ? updatedMatchData : m)].sort((a,b) => b.timestamp - a.timestamp));
-    } else { 
-        setMatches(prev => [...prev.filter(m => m.id !== updatedMatchData.id)].sort((a,b) => b.timestamp - a.timestamp));
-    }
-  };
+  }, [username, getActiveSeason, toast]);
 
   return { matches, isLoadingMatches, addMatch, deleteMatch, updateMatch };
 }
