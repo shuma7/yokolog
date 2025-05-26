@@ -73,6 +73,9 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
     const filteredArchetypes = allArchetypes.filter(a => a.id !== 'unknown');
 
     return [...filteredArchetypes].sort((a, b) => {
+      if (a.id === 'unknown') return 1; // 'unknown' should be last if it were included
+      if (b.id === 'unknown') return -1;
+
       const classOrderA = getClassOrder(a.gameClass);
       const classOrderB = getClassOrder(b.gameClass);
 
@@ -93,12 +96,14 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
   }, [matches, sortedArchetypes]);
 
   useEffect(() => {
-    if (availableArchetypesForFilter.length > 0) {
+    // Only set default selected archetypes if `availableArchetypesForFilter` is populated
+    // and `selectedArchetypeIds` hasn't been set by user interaction yet (or is empty)
+    if (availableArchetypesForFilter.length > 0 ) {
        setSelectedArchetypeIds(availableArchetypesForFilter.map(a => a.id));
     } else {
        setSelectedArchetypeIds([]);
     }
-  }, [availableArchetypesForFilter]);
+  }, [availableArchetypesForFilter]); // Dependency on availableArchetypesForFilter only
 
   const displayArchetypes = useMemo(() => {
     return availableArchetypesForFilter
@@ -117,22 +122,25 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
         const firstTurnItems: Array<{ result: 'win' | 'loss' }> = [];
         const secondTurnItems: Array<{ result: 'win' | 'loss' }> = [];
 
-        if (rowArch.id === colArch.id) {
+        if (rowArch.id === colArch.id) { // Mirror Match
             matches.forEach(match => {
                 if (match.userArchetypeId === rowArch.id && match.opponentArchetypeId === colArch.id) {
-                    overallItems.push({ result: match.result });
-                    overallItems.push({ result: match.result === 'win' ? 'loss' : 'win' });
+                    // For Overall in mirror, one game is one win and one loss for the archetype
+                    overallItems.push({ result: 'win' });
+                    overallItems.push({ result: 'loss' });
+
+                    // For turn-specific in mirror
                     if (match.turn === 'first') {
-                        firstTurnItems.push({ result: match.result });
-                        secondTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' });
+                        firstTurnItems.push({ result: match.result }); // User's result going first
+                        secondTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' }); // Implied opponent's result going second
                     } else if (match.turn === 'second') {
-                        secondTurnItems.push({ result: match.result });
-                        firstTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' });
+                        secondTurnItems.push({ result: match.result }); // User's result going second
+                        firstTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' }); // Implied opponent's result going first
                     }
-                    // "unknown" turn is ignored for first/second turn stats in mirror, but counted in overall
+                    // "unknown" turn is ignored for first/second turn stats in mirror, but counted in overall (as 1 win, 1 loss)
                 }
             });
-        } else {
+        } else { // Non-Mirror Match
           matches.forEach(match => {
             let perspectiveResult: 'win' | 'loss' | null = null;
             let perspectiveTurn: 'first' | 'second' | 'unknown' | null = null;
@@ -180,6 +188,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
         let resultForPerspective: 'win' | 'loss' | null = null;
         let turnForPerspective: 'first' | 'second' | 'unknown' | null = null;
 
+        // Check if the match involves 'arch' against any of the *currently displayed* archetypes
         if (match.userArchetypeId === arch.id && displayArchetypes.some(da => da.id === match.opponentArchetypeId)) {
             resultForPerspective = match.result;
             turnForPerspective = match.turn;
@@ -223,8 +232,8 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
   const renderStatsCell = (stats: MatchupDetailStats | undefined, userArchForPopover: Archetype, oppArchForPopover?: Archetype) => {
     if (!stats || stats.overall.gamesPlayed === 0) {
       return (
-        <div className="flex items-center justify-center h-full py-1.5">
-          <span className="text-muted-foreground text-[8px]">-</span>
+        <div className="flex items-center justify-center h-full py-1.5"> {/* Increased vertical padding */}
+          <span className="text-muted-foreground text-[8px]">-</span> {/* Font size adjusted */}
         </div>
       );
     }
@@ -247,21 +256,21 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
     return (
       <Popover>
         <PopoverTrigger asChild>
-          <div className={cn("flex flex-col items-center justify-center cursor-pointer h-full w-full leading-tight py-1.5", cellBgClass)}>
-            <span title={`先攻: ${stats.first.winRate}% (${stats.first.wins}勝${stats.first.losses}敗)`} className="text-[9px]">
+          <div className={cn("flex flex-col items-center justify-center cursor-pointer h-full w-full leading-tight py-1.5", cellBgClass)}> {/* Increased vertical padding */}
+            <span title={`先攻: ${stats.first.winRate}% (${stats.first.wins}勝${stats.first.losses}敗)`} className="text-[9px]"> {/* Increased font size */}
               先: {stats.first.winRate}%
             </span>
-            <span title={`後攻: ${stats.second.winRate}% (${stats.second.wins}勝${stats.second.losses}敗)`} className="text-[9px]">
+            <span title={`後攻: ${stats.second.winRate}% (${stats.second.wins}勝${stats.second.losses}敗)`} className="text-[9px]"> {/* Increased font size */}
               後: {stats.second.winRate}%
             </span>
-            <span className="font-semibold text-[10px]" title={`総合: ${stats.overall.winRate}% (${stats.overall.wins}勝${stats.overall.losses}敗)`}>
+            <span className="font-semibold text-[10px]" title={`総合: ${stats.overall.winRate}% (${stats.overall.wins}勝${stats.overall.losses}敗)`}> {/* Increased font size */}
               計: {stats.overall.winRate}%
             </span>
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-1.5 text-xs shadow-lg">
+        <PopoverContent className="w-auto p-1.5 text-xs shadow-lg"> {/* Popover font size */}
           <div className="space-y-0.5">
-            <h4 className="font-semibold text-sm mb-0.5">{popoverTitle}</h4>
+            <h4 className="font-semibold text-sm mb-0.5">{popoverTitle}</h4> {/* Popover title font size */}
             <p>総合: {stats.overall.wins}勝 {stats.overall.losses}敗 ({stats.overall.gamesPlayed}試合)</p>
             <p>先攻: {stats.first.wins}勝 {stats.first.losses}敗 ({stats.first.gamesPlayed}試合)</p>
             <p>後攻: {stats.second.wins}勝 {stats.second.losses}敗 ({stats.second.gamesPlayed}試合)</p>
@@ -273,17 +282,17 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
 
   return (
     <Card>
-      <CardHeader className="p-1">
-        <CardTitle className="text-base">デッキタイプ相性表</CardTitle>
-        <CardDescription className="text-[10px]">
+      <CardHeader className="p-1"> {/* Reduced padding */}
+        <CardTitle className="text-base">デッキタイプ相性表</CardTitle> {/* Smaller title */}
+        <CardDescription className="text-[10px]"> {/* Smaller text */}
           記録されたゲームに基づくデッキタイプ間の勝率です。下のボタンで表示するデッキタイプを選択し、表のセルをタップすると詳細が表示されます。
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-0">
-        <div className="mb-1.5 px-0.5">
+      <CardContent className="p-0"> {/* Reduced padding */}
+        <div className="mb-1 px-0.5"> {/* Reduced margin */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="md:w-auto text-[10px] h-6 px-1.5 py-0.5"> {/* Removed w-full */}
+              <Button variant="outline" className="text-[10px] h-6 px-1.5 py-0.5"> {/* Kept button small */}
                 表示するデッキタイプを選択 ({selectedArchetypeIds.length} / {availableArchetypesForFilter.length})
                 <ChevronDown className="ml-1 h-2.5 w-2.5" />
               </Button>
@@ -316,6 +325,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                           checked ? [...prev, archetype.id] : prev.filter(id => id !== archetype.id)
                         );
                       }}
+                      onSelect={(e) => e.preventDefault()} // Prevent menu from closing on select
                       className="text-xs"
                     >
                       <Icon className="mr-1 h-3 w-3 text-muted-foreground" />
@@ -335,25 +345,25 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
             <Table className="min-w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="sticky top-0 left-0 z-30 bg-card min-w-[60px] w-[60px] p-0.5">
-                    <span className="text-[8px] text-muted-foreground block text-right -mb-1.5">相手</span>
-                    <span className="text-[8px] text-muted-foreground block text-left -mt-1.5 ml-0.5">自分</span>
+                  <TableHead className="sticky top-0 left-0 z-30 bg-card min-w-[60px] w-[60px] p-0.5"> {/* Narrower sticky left column */}
+                    <span className="text-[8px] text-muted-foreground block text-right -mb-1.5">相手</span> {/* Smaller text */}
+                    <span className="text-[8px] text-muted-foreground block text-left -mt-1.5 ml-0.5">自分</span> {/* Smaller text */}
                     <div className="w-full border-b border-border transform rotate-[335deg] translate-y-[-7px] translate-x-[0.5px]"></div>
                   </TableHead>
                   {displayArchetypes.map(oppArch => {
                     const OppIcon = CLASS_ICONS[oppArch.gameClass] || GENERIC_ARCHETYPE_ICON;
                     return (
-                      <TableHead key={oppArch.id} className="bg-card text-center min-w-[45px] p-0.5">
+                      <TableHead key={oppArch.id} className="sticky top-0 z-20 bg-card text-center min-w-[45px] p-0.5"> {/* Narrower columns */}
                         <div className="flex flex-col items-center">
-                          <OppIcon className="h-3 w-3 mb-0.5" />
-                          <span className="text-[9px] leading-tight break-all">{formatArchetypeNameWithSuffix(oppArch)}</span> 
+                          <OppIcon className="h-2.5 w-2.5 mb-0.5" /> {/* Smaller icon */}
+                          <span className="text-[9px] leading-tight break-all">{formatArchetypeNameWithSuffix(oppArch)}</span>  {/* Smaller text */}
                         </div>
                       </TableHead>
                     );
                   })}
-                  <TableHead className="bg-card text-center min-w-[45px] p-0.5">
+                  <TableHead className="sticky top-0 z-20 bg-card text-center min-w-[45px] p-0.5"> {/* Narrower total column */}
                     <div className="flex flex-col items-center">
-                       <span className="text-[9px] font-semibold leading-tight">合計</span> 
+                       <span className="text-[9px] font-semibold leading-tight">合計</span> {/* Smaller text */}
                     </div>
                   </TableHead>
                 </TableRow>
@@ -364,21 +374,21 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                   const totalStatsForUserArch = archetypeOverallPerformance[userArch.id];
                   return (
                     <TableRow key={userArch.id}>
-                      <TableCell className="sticky left-0 z-10 bg-card font-medium min-w-[60px] w-[60px] p-0.5">
+                      <TableCell className="sticky left-0 z-10 bg-card font-medium min-w-[60px] w-[60px] p-0.5"> {/* Narrower sticky left column */}
                         <div className="flex items-center gap-0.5">
-                          <UserIcon className="h-3 w-3" />
-                          <span className="text-[10px] leading-tight break-all">{formatArchetypeNameWithSuffix(userArch)}</span> 
+                          <UserIcon className="h-3 w-3" /> {/* Adjusted icon size */}
+                          <span className="text-[10px] leading-tight break-all">{formatArchetypeNameWithSuffix(userArch)}</span> {/* Smaller text */}
                         </div>
                       </TableCell>
                       {displayArchetypes.map(oppArch => {
                         const matchupStats = matchupData[userArch.id]?.[oppArch.id];
                         return (
-                          <TableCell key={oppArch.id} className="p-0 min-w-[45px]">
+                          <TableCell key={oppArch.id} className="p-0 min-w-[45px]"> {/* Narrower columns */}
                             {renderStatsCell(matchupStats, userArch, oppArch)}
                           </TableCell>
                         );
                       })}
-                      <TableCell className="p-0 min-w-[45px] bg-card"> {/* Total column data cell should not be sticky */}
+                      <TableCell className="p-0 min-w-[45px] bg-card"> {/* Narrower total column */}
                          {renderStatsCell(totalStatsForUserArch, userArch)}
                       </TableCell>
                     </TableRow>
