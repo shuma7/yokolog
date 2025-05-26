@@ -120,20 +120,15 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
         if (rowArch.id === colArch.id) { // Mirror match logic
           matches.forEach(match => {
             if (match.userArchetypeId === rowArch.id && match.opponentArchetypeId === colArch.id) {
-                // For A vs A cell, user perspective is A
-                // Each match contributes a win AND a loss to the overall mirror pool
                 overallItems.push({ result: match.result });
                 overallItems.push({ result: match.result === 'win' ? 'loss' : 'win' });
 
-                // Perspective for turn stats:
-                // If user (A) was first and won, it's a first turn win for A.
-                // This also implies opponent (A) was second and lost, contributing to second turn loss for A.
                 if (match.turn === 'first') {
-                    firstTurnItems.push({ result: match.result }); // User (A) went first
-                    secondTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' }); // Opponent (A) went second
+                    firstTurnItems.push({ result: match.result }); 
+                    secondTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' }); 
                 } else if (match.turn === 'second') {
-                    secondTurnItems.push({ result: match.result }); // User (A) went second
-                    firstTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' }); // Opponent (A) went first
+                    secondTurnItems.push({ result: match.result }); 
+                    firstTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' }); 
                 }
             }
           });
@@ -185,7 +180,6 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
         let resultForPerspective: 'win' | 'loss' | null = null;
         let turnForPerspective: 'first' | 'second' | 'unknown' | null = null;
 
-        // Only consider matches where the opponent is also one of the displayArchetypes
         if (match.userArchetypeId === arch.id && displayArchetypes.some(da => da.id === match.opponentArchetypeId)) {
             resultForPerspective = match.result;
             turnForPerspective = match.turn;
@@ -227,7 +221,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
   const renderStatsCell = (stats: MatchupDetailStats | undefined, userArchForPopover: Archetype, oppArchForPopover?: Archetype) => {
     if (!stats || stats.overall.gamesPlayed === 0) {
       return (
-        <div className="flex items-center justify-center h-full py-0.5"> {/* Increased py */}
+        <div className="flex items-center justify-center h-full py-1">
           <span className="text-muted-foreground text-[8px]">-</span>
         </div>
       );
@@ -251,7 +245,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
     return (
       <Popover>
         <PopoverTrigger asChild>
-          <div className={cn("flex flex-col items-center justify-center text-[8px] cursor-pointer h-full w-full leading-tight py-0.5", cellBgClass)}> {/* Increased py */}
+          <div className={cn("flex flex-col items-center justify-center text-[8px] cursor-pointer h-full w-full leading-tight py-1", cellBgClass)}>
             <span title={`先攻: ${stats.first.winRate}% (${stats.first.wins}勝${stats.first.losses}敗)`}>
               先: {stats.first.winRate}%
             </span>
@@ -339,7 +333,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
             <Table className="min-w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="sticky top-0 left-0 z-30 bg-card min-w-[70px] w-[70px] p-0.5"> {/* Reduced width */}
+                  <TableHead className="sticky top-0 left-0 z-30 bg-card min-w-[60px] w-[60px] p-0.5">
                     <span className="text-[7px] text-muted-foreground block text-right -mb-1.5">相手</span>
                     <span className="text-[7px] text-muted-foreground block text-left -mt-1.5 ml-0.5">自分</span>
                     <div className="w-full border-b border-border transform rotate-[335deg] translate-y-[-7px] translate-x-[0.5px]"></div>
@@ -347,7 +341,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                   {displayArchetypes.map(oppArch => {
                     const OppIcon = CLASS_ICONS[oppArch.gameClass] || GENERIC_ARCHETYPE_ICON;
                     return (
-                      <TableHead key={oppArch.id} className="bg-card text-center min-w-[50px] p-0.5"> {/* Reduced width */}
+                      <TableHead key={oppArch.id} className="bg-card text-center min-w-[45px] p-0.5">
                         <div className="flex flex-col items-center">
                           <OppIcon className="h-2.5 w-2.5 mb-0.5" />
                           <span className="text-[7px] leading-tight break-all">{formatArchetypeNameWithSuffix(oppArch)}</span>
@@ -355,7 +349,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                       </TableHead>
                     );
                   })}
-                  <TableHead className="bg-card text-center min-w-[50px] p-0.5"> {/* Reduced width */}
+                  <TableHead className="bg-card text-center min-w-[45px] p-0.5">
                     <div className="flex flex-col items-center">
                        <span className="text-[7px] font-semibold leading-tight">合計</span>
                     </div>
@@ -368,7 +362,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                   const totalStatsForUserArch = archetypeOverallPerformance[userArch.id];
                   return (
                     <TableRow key={userArch.id}>
-                      <TableCell className="sticky left-0 z-10 bg-card font-medium min-w-[70px] w-[70px] p-0.5"> {/* Reduced width */}
+                      <TableCell className="sticky left-0 z-10 bg-card font-medium min-w-[60px] w-[60px] p-0.5">
                         <div className="flex items-center gap-0.5">
                           <UserIcon className="h-2.5 w-2.5" />
                           <span className="text-[8px] leading-tight break-all">{formatArchetypeNameWithSuffix(userArch)}</span>
@@ -377,12 +371,12 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                       {displayArchetypes.map(oppArch => {
                         const matchupStats = matchupData[userArch.id]?.[oppArch.id];
                         return (
-                          <TableCell key={oppArch.id} className="p-0 min-w-[50px]"> {/* Reduced width */}
+                          <TableCell key={oppArch.id} className="p-0 min-w-[45px]">
                             {renderStatsCell(matchupStats, userArch, oppArch)}
                           </TableCell>
                         );
                       })}
-                      <TableCell className="p-0 min-w-[50px] bg-card"> {/* Reduced width */}
+                      <TableCell className="p-0 min-w-[45px] bg-card">
                          {renderStatsCell(totalStatsForUserArch, userArch)}
                       </TableCell>
                     </TableRow>
