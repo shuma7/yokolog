@@ -8,7 +8,7 @@ import ClientLayoutWrapper from '@/components/layout/client-layout-wrapper';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'よこログ｜YNUsv - シャドウバース対戦記録',
+  title: 'よこログ｜YNUsv',
   description: 'シャドウバースの対戦を記録し、戦績を分析しましょう。',
   icons: {
     icon: '/icon.png',
