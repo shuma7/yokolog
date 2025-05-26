@@ -40,14 +40,11 @@ import { CLASS_ICONS, formatArchetypeNameWithSuffix, UNKNOWN_ARCHETYPE_ICON, get
 import type { MatchData } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSeasonManager } from "@/hooks/useSeasonManager";
-// Removed SeasonSelector import
-// import { Card, CardContent as UiCardContent, CardHeader as UiCardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from "@/components/ui/card";
 
 
 export default function ManageArchetypesPage() {
   const { archetypes, addArchetype, updateArchetype, deleteArchetype } = useArchetypeManager();
   const { toast } = useToast();
-  // Only get what's needed for initial data load and migration
   const { 
     getAllSeasons, 
     isLoadingSeasons,
@@ -58,10 +55,9 @@ export default function ManageArchetypesPage() {
   const [allMatchesForCounts, setAllMatchesForCounts] = useState<MatchData[]>([]);
   const [discoveredUserKeys, setDiscoveredUserKeys] = useState<string[]>([]);
   const [isLoadingPageData, setIsLoadingPageData] = useState(true);
-  // Removed currentSelectedSeason
 
   useEffect(() => {
-    if (isLoadingSeasons) return; // Still wait for seasons data for migration logic
+    if (isLoadingSeasons) return; 
     setIsLoadingPageData(true);
     const collectedMatches: MatchData[] = [];
     const userLogKeys: string[] = [];
@@ -74,7 +70,7 @@ export default function ManageArchetypesPage() {
             const item = localStorage.getItem(key);
             const userMatches: MatchData[] = item ? JSON.parse(item) : [];
             
-            const seasons = getAllSeasons(); // Needed for migration
+            const seasons = getAllSeasons(); 
             const oldestSeason = seasons.length > 0 ? seasons[seasons.length - 1] : null;
             let userMatchesChanged = false;
             const migratedUserMatches = userMatches.map(m => {
@@ -95,10 +91,9 @@ export default function ManageArchetypesPage() {
       }
     }
     setDiscoveredUserKeys(userLogKeys);
-    // No longer filter by selectedSeasonId for counts
     setAllMatchesForCounts(collectedMatches);
     setIsLoadingPageData(false);
-  }, [isLoadingSeasons, getAllSeasons]); // Removed selectedSeasonId from dependencies
+  }, [isLoadingSeasons, getAllSeasons]); 
 
   const handleAddNew = () => {
     setCurrentArchetype(null);
@@ -181,7 +176,7 @@ export default function ManageArchetypesPage() {
     try {
       if (currentArchetype && currentArchetype.id) {
         const updated: Archetype = {
-            ...(currentArchetype as Archetype),
+            ...(currentArchetype as Archetype), // Cast is safe here due to currentArchetype.id check
             name: data.name,
             gameClass: data.gameClass,
         };
@@ -223,7 +218,7 @@ export default function ManageArchetypesPage() {
     return allMatchesForCounts.filter(match => match.userArchetypeId === archetypeId || match.opponentArchetypeId === archetypeId).length;
   };
 
-  if (isLoadingPageData || isLoadingSeasons) { // Still check isLoadingSeasons for the initial data fetch
+  if (isLoadingPageData || isLoadingSeasons) { 
     return (
       <div className="flex flex-1 flex-col">
         <MainHeader
@@ -237,7 +232,6 @@ export default function ManageArchetypesPage() {
         />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           <div className="container mx-auto space-y-6">
-            {/* Removed Season Selector Skeleton */}
             {[...Array(3)].map((_, i) => (
               <section key={i} className="mb-8">
                 <Skeleton className="h-7 w-1/4 mb-3" /> {/* Class Title Skeleton */}
@@ -268,7 +262,6 @@ export default function ManageArchetypesPage() {
       />
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="container mx-auto">
-          {/* Removed Season Selector Card */}
 
           {ALL_GAME_CLASSES.map((gameClassDetail) => {
             const classArchetypes = archetypesByClass[gameClassDetail.value];
@@ -286,22 +279,11 @@ export default function ManageArchetypesPage() {
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[60%]">デッキタイプ名</TableHead>
-                        <TableHead className="text-center">総試合数 (全期間)</TableHead> {/* Changed season display */}
-                        <TableHead className="text-right">操作</TableHead>
-                      </TableRow>
+                      <TableRow><TableHead className="w-[60%]">デッキタイプ名</TableHead><TableHead className="text-center">総試合数 (全期間)</TableHead><TableHead className="text-right">操作</TableHead></TableRow>
                     </TableHeader>
                     <TableBody>
                       {classArchetypes.map((archetype) => (
-                        <TableRow key={archetype.id}>
-                          <TableCell className="font-medium">
-                            {formatArchetypeNameWithSuffix(archetype)}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {getMatchCount(archetype.id)}
-                          </TableCell>
-                          <TableCell className="text-right">
+                        <TableRow key={archetype.id}><TableCell className="font-medium">{formatArchetypeNameWithSuffix(archetype)}</TableCell><TableCell className="text-center">{getMatchCount(archetype.id)}</TableCell><TableCell className="text-right">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -338,8 +320,7 @@ export default function ManageArchetypesPage() {
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
-                          </TableCell>
-                        </TableRow>
+                          </TableCell></TableRow>
                       ))}
                     </TableBody>
                   </Table>
@@ -361,21 +342,10 @@ export default function ManageArchetypesPage() {
                    <div className="rounded-md border">
                      <Table>
                        <TableHeader>
-                         <TableRow>
-                           <TableHead className="w-[60%]">デッキタイプ名</TableHead>
-                           <TableHead className="text-center">総試合数 (全期間)</TableHead> {/* Changed season display */}
-                           <TableHead className="text-right">操作</TableHead>
-                         </TableRow>
+                         <TableRow><TableHead className="w-[60%]">デッキタイプ名</TableHead><TableHead className="text-center">総試合数 (全期間)</TableHead><TableHead className="text-right">操作</TableHead></TableRow>
                        </TableHeader>
                        <TableBody>
-                         <TableRow key={unknownArchetype.id}>
-                           <TableCell className="font-medium">
-                             {formatArchetypeNameWithSuffix(unknownArchetype)}
-                           </TableCell>
-                           <TableCell className="text-center">
-                             {getMatchCount(unknownArchetype.id)}
-                           </TableCell>
-                           <TableCell className="text-right">
+                         <TableRow key={unknownArchetype.id}><TableCell className="font-medium">{formatArchetypeNameWithSuffix(unknownArchetype)}</TableCell><TableCell className="text-center">{getMatchCount(unknownArchetype.id)}</TableCell><TableCell className="text-right">
                              <Button
                                variant="ghost"
                                size="icon"
@@ -386,8 +356,7 @@ export default function ManageArchetypesPage() {
                                <Edit3 className="h-4 w-4" />
                              </Button>
                              <span className="text-xs text-muted-foreground italic mr-2">削除不可</span>
-                           </TableCell>
-                         </TableRow>
+                           </TableCell></TableRow>
                        </TableBody>
                      </Table>
                    </div>
@@ -430,4 +399,3 @@ export default function ManageArchetypesPage() {
     </div>
   );
 }
-
