@@ -117,11 +117,11 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
         const firstTurnItems: Array<{ result: 'win' | 'loss' }> = [];
         const secondTurnItems: Array<{ result: 'win' | 'loss' }> = [];
 
-        if (rowArch.id === colArch.id) { 
+        if (rowArch.id === colArch.id) {
             matches.forEach(match => {
                 if (match.userArchetypeId === rowArch.id && match.opponentArchetypeId === colArch.id) {
                     overallItems.push({ result: match.result });
-                    overallItems.push({ result: match.result === 'win' ? 'loss' : 'win' }); 
+                    overallItems.push({ result: match.result === 'win' ? 'loss' : 'win' });
                     if (match.turn === 'first') {
                         firstTurnItems.push({ result: match.result });
                         secondTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' });
@@ -129,9 +129,10 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                         secondTurnItems.push({ result: match.result });
                         firstTurnItems.push({ result: match.result === 'win' ? 'loss' : 'win' });
                     }
+                    // "unknown" turn is ignored for first/second turn stats in mirror, but counted in overall
                 }
             });
-        } else { 
+        } else {
           matches.forEach(match => {
             let perspectiveResult: 'win' | 'loss' | null = null;
             let perspectiveTurn: 'first' | 'second' | 'unknown' | null = null;
@@ -222,7 +223,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
   const renderStatsCell = (stats: MatchupDetailStats | undefined, userArchForPopover: Archetype, oppArchForPopover?: Archetype) => {
     if (!stats || stats.overall.gamesPlayed === 0) {
       return (
-        <div className="flex items-center justify-center h-full py-1.5"> 
+        <div className="flex items-center justify-center h-full py-1.5">
           <span className="text-muted-foreground text-[8px]">-</span>
         </div>
       );
@@ -246,19 +247,19 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
     return (
       <Popover>
         <PopoverTrigger asChild>
-          <div className={cn("flex flex-col items-center justify-center cursor-pointer h-full w-full leading-tight py-1.5", cellBgClass)}> 
-            <span title={`先攻: ${stats.first.winRate}% (${stats.first.wins}勝${stats.first.losses}敗)`} className="text-[9px]"> 
+          <div className={cn("flex flex-col items-center justify-center cursor-pointer h-full w-full leading-tight py-1.5", cellBgClass)}>
+            <span title={`先攻: ${stats.first.winRate}% (${stats.first.wins}勝${stats.first.losses}敗)`} className="text-[9px]">
               先: {stats.first.winRate}%
             </span>
-            <span title={`後攻: ${stats.second.winRate}% (${stats.second.wins}勝${stats.second.losses}敗)`} className="text-[9px]"> 
+            <span title={`後攻: ${stats.second.winRate}% (${stats.second.wins}勝${stats.second.losses}敗)`} className="text-[9px]">
               後: {stats.second.winRate}%
             </span>
-            <span className="font-semibold text-[10px]" title={`総合: ${stats.overall.winRate}% (${stats.overall.wins}勝${stats.overall.losses}敗)`}> 
+            <span className="font-semibold text-[10px]" title={`総合: ${stats.overall.winRate}% (${stats.overall.wins}勝${stats.overall.losses}敗)`}>
               計: {stats.overall.winRate}%
             </span>
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-1.5 text-xs shadow-lg"> 
+        <PopoverContent className="w-auto p-1.5 text-xs shadow-lg">
           <div className="space-y-0.5">
             <h4 className="font-semibold text-sm mb-0.5">{popoverTitle}</h4>
             <p>総合: {stats.overall.wins}勝 {stats.overall.losses}敗 ({stats.overall.gamesPlayed}試合)</p>
@@ -272,17 +273,17 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
 
   return (
     <Card>
-      <CardHeader className="p-1"> 
-        <CardTitle className="text-base">デッキタイプ相性表</CardTitle> 
-        <CardDescription className="text-[10px]"> 
+      <CardHeader className="p-1">
+        <CardTitle className="text-base">デッキタイプ相性表</CardTitle>
+        <CardDescription className="text-[10px]">
           記録されたゲームに基づくデッキタイプ間の勝率です。下のボタンで表示するデッキタイプを選択し、表のセルをタップすると詳細が表示されます。
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="mb-1 px-0.5">
+        <div className="mb-1.5 px-0.5">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full md:w-auto text-[10px] h-6 px-1.5 py-0.5">
+              <Button variant="outline" className="md:w-auto text-[10px] h-6 px-1.5 py-0.5"> {/* Removed w-full */}
                 表示するデッキタイプを選択 ({selectedArchetypeIds.length} / {availableArchetypesForFilter.length})
                 <ChevronDown className="ml-1 h-2.5 w-2.5" />
               </Button>
@@ -377,7 +378,7 @@ export function MatchupTableDisplay({ matches, allArchetypes, gameClassMapping }
                           </TableCell>
                         );
                       })}
-                      <TableCell className="p-0 min-w-[45px] bg-card">
+                      <TableCell className="p-0 min-w-[45px] bg-card"> {/* Total column data cell should not be sticky */}
                          {renderStatsCell(totalStatsForUserArch, userArch)}
                       </TableCell>
                     </TableRow>
