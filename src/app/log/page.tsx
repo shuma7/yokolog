@@ -25,15 +25,11 @@ import {
 import { useUsername } from "@/hooks/use-username";
 import { useSeasonManager } from "@/hooks/useSeasonManager";
 import { SeasonSelector } from "@/components/stats/season-selector";
-import { Card, CardContent, CardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from "@/components/ui/card"; // Renamed to avoid conflict
+import { Card, CardContent, CardHeader, CardTitle as UiCardTitle, CardDescription as UiCardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 
 export default function PersonalLogPage() {
-  const { matches, isLoadingMatches, deleteMatch, updateMatch } = useMatchLogger();
-  const { archetypes } = useArchetypeManager();
-  const { toast } = useToast();
-  const { username } = useUsername();
   const { 
     selectedSeasonId, 
     setSelectedSeasonId, 
@@ -42,6 +38,12 @@ export default function PersonalLogPage() {
     getSelectedSeason,
     formatDateForSeasonName 
   } = useSeasonManager();
+  
+  // Pass selectedSeasonId to useMatchLogger
+  const { matches, isLoadingMatches, deleteMatch, updateMatch } = useMatchLogger(selectedSeasonId);
+  const { archetypes } = useArchetypeManager();
+  const { toast } = useToast();
+  const { username } = useUsername();
 
   const [editingMatch, setEditingMatch] = useState<MatchData | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -51,7 +53,8 @@ export default function PersonalLogPage() {
 
   const currentUserMatches = useMemo(() => {
     if (!username) return [];
-    return [...matches].sort((a, b) => b.timestamp - a.timestamp);
+    // Matches from useMatchLogger are already filtered by season and sorted
+    return matches;
   }, [matches, username]);
 
   const handleDeleteMatch = (matchId: string) => {
@@ -80,13 +83,12 @@ export default function PersonalLogPage() {
       try {
         const updatedMatchData: MatchData = {
           ...editingMatch,
-          userId: username,
+          userId: username, // Ensure userId is set
           userArchetypeId: data.userArchetypeId,
           opponentArchetypeId: data.opponentArchetypeId,
           turn: data.turn,
           result: data.result,
           notes: data.notes,
-          // seasonId should be preserved from editingMatch or re-assigned if necessary
           seasonId: editingMatch.seasonId || getSelectedSeason()?.id 
         };
         updateMatch(updatedMatchData);
@@ -161,7 +163,7 @@ export default function PersonalLogPage() {
                 <TabsTrigger value="summary-data">集計データ</TabsTrigger>
               </TabsList>
               <TabsContent value="log-list" className="mt-6">
-                <div className="max-h-[calc(100vh-300px)] overflow-y-auto"> {/* Adjusted max-h */}
+                <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
                   <UserLogTable
                     matches={currentUserMatches}
                     archetypes={archetypes}

@@ -10,12 +10,16 @@ import { GAME_CLASS_EN_TO_JP } from "@/lib/game-data";
 import { useUsername } from "@/hooks/use-username"; 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardDescription } from "@/components/ui/card";
+import { useSeasonManager } from "@/hooks/useSeasonManager"; // Import useSeasonManager
 
 export default function HomePage() { 
   const { archetypes } = useArchetypeManager();
-  const { addMatch, matches: userMatches } = useMatchLogger(); // Get matches for the current user
-  const { toast } = useToast();
   const { username } = useUsername(); 
+  const { selectedSeasonId, getActiveSeason } = useSeasonManager(); // Get selectedSeasonId and getActiveSeason
+  
+  // Pass the selectedSeasonId or active season's ID to useMatchLogger
+  const { addMatch, matches: userMatches } = useMatchLogger(selectedSeasonId ?? getActiveSeason()?.id ?? null);
+  const { toast } = useToast();
 
   const handleSubmit = (data: MatchFormValues, resetFormCallback: () => void) => {
     if (!username) { 
