@@ -14,14 +14,14 @@ runConfig:
 # override or provide values for these declarations.
 env:
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: YOUR_API_KEY_HERE
+    value: AIzaSyCgvGlrJgL76LTb5LWmabBPm1VHwnSY9Zc
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: YOUR_AUTH_DOMAIN_HERE
+    value: yokolog-92v7i.firebaseapp.com
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: YOUR_PROJECT_ID_HERE
+    value: yokolog-92v7i
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    value: YOUR_STORAGE_BUCKET_HERE
+    value: yokolog-92v7i.firebasestorage.app
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    value: YOUR_MESSAGING_SENDER_ID_HERE
+    value: 364907448800
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: YOUR_APP_ID_HERE
+    value: 1:364907448800:web:d481a018043b1adca8c385
