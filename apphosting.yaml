@@ -14,7 +14,7 @@ runConfig:
 # override or provide values for these declarations.
 env:
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: AIzaSyCgvGlrJgL76LTb5LWmabBPm1VHwnSY9Zc
+    value: 
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
     value: yokolog-92v7i.firebaseapp.com
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
